@@ -32,7 +32,7 @@ class Model(nn.Module):
         self.model_config = model_config
         self.predictor = networks.predictor
 
-    def __call__(
+    def forward(
         self,
         feature: Tensor,
         target: Tensor,
