@@ -13,13 +13,13 @@ from tensorboardX import SummaryWriter
 from torch import optim
 from torch.optim.optimizer import Optimizer
 
-from yukarin_so.config import Config
-from yukarin_so.dataset import create_dataset
-from yukarin_so.model import Model
-from yukarin_so.network.predictor import create_predictor
-from yukarin_so.utility.pytorch_utility import init_weights
-from yukarin_so.utility.trainer_extension import TensorboardReport, WandbReport
-from yukarin_so.utility.trainer_utility import (
+from yukarin_s.config import Config
+from yukarin_s.dataset import create_dataset
+from yukarin_s.model import Model
+from yukarin_s.network.predictor import create_predictor
+from yukarin_s.utility.pytorch_utility import init_weights
+from yukarin_s.utility.trainer_extension import TensorboardReport, WandbReport
+from yukarin_s.utility.trainer_utility import (
     LowValueTrigger,
     create_iterator,
     list_concat,
