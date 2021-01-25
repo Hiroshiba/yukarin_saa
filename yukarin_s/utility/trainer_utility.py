@@ -52,27 +52,6 @@ def create_iterator(
             )
 
 
-@converter()
-def list_concat(batch, device=None, padding=None):
-    assert device is None or isinstance(device, torch.device)
-    if not batch:
-        raise ValueError("batch is empty")
-
-    assert padding is None
-
-    first_elem = batch[0]
-
-    if isinstance(first_elem, container_abcs.Mapping):
-        result = {}
-        for key in first_elem:
-            result[key] = [to_device(device, example[key]) for example in batch]
-
-        return result
-
-    else:
-        raise ValueError(type(first_elem))
-
-
 class BetterValueTrigger(object):
     def __init__(self, key, compare, stock_num=5, trigger=(1, "epoch")):
         self._key = key

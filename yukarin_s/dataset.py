@@ -13,29 +13,18 @@ from torch.utils.data.dataset import ConcatDataset, Dataset
 from yukarin_s.config import DatasetConfig
 
 
-def resample(rate: float, data: SamplingData):
-    length = int(len(data.array) / data.rate * rate)
-    indexes = (numpy.random.rand() + numpy.arange(length)) * (data.rate / rate)
-    return data.array[indexes.astype(int)]
-
 
 @dataclass
 class Input:
-    f0: SamplingData
-    phoneme: SamplingData
     phoneme_list: List[JvsPhoneme]
 
 
 @dataclass
 class LazyInput:
-    f0_path: SamplingData
-    phoneme_path: SamplingData
     phoneme_list_path: SamplingData
 
     def generate(self):
         return Input(
-            f0=SamplingData.load(self.f0_path),
-            phoneme=SamplingData.load(self.phoneme_path),
             phoneme_list=JvsPhoneme.load_julius_list(self.phoneme_list_path),
         )
 
@@ -44,33 +33,27 @@ class FeatureDataset(Dataset):
     def __init__(
         self,
         inputs: List[Union[Input, LazyInput]],
+        phoneme_num: int,
     ):
         self.inputs = inputs
+        self.phoneme_num = phoneme_num
 
     @staticmethod
     def extract_input(
-        f0_data: SamplingData,
-        phoneme_data: SamplingData,
         phoneme_list_data: List[JvsPhoneme],
+        phoneme_num: int,
     ):
-        rate = f0_data.rate
+        assert len(phoneme_list_data) >= phoneme_num
 
-        f0 = f0_data.array
-        phoneme = resample(rate=rate, data=phoneme_data)
-
-        length = min(len(f0), len(phoneme))
-        assert numpy.abs(length - len(f0)) < 10
-        assert numpy.abs(length - len(phoneme)) < 10
-
-        f0 = f0[:length]
-        phoneme = phoneme[:length]
+        index = numpy.random.randint(len(phoneme_list_data) - phoneme_num + 1)
+        phoneme_list_data = phoneme_list_data[index:index + phoneme_num]
 
         phoneme_list = numpy.array([p.phoneme_id for p in phoneme_list_data])
+        phoneme_length = numpy.array([p.end - p.start for p in phoneme_list_data])
 
         return dict(
-            f0=f0,
-            phoneme=numpy.argmax(phoneme, axis=1).astype(numpy.int64),
             phoneme_list=phoneme_list.astype(numpy.int64),
+            phoneme_length=phoneme_length.astype(numpy.float32),
         )
 
     def __len__(self):
@@ -82,9 +65,8 @@ class FeatureDataset(Dataset):
             input = input.generate()
 
         return self.extract_input(
-            f0_data=input.f0,
-            phoneme_data=input.phoneme,
             phoneme_list_data=input.phoneme_list,
+            phoneme_num=self.phoneme_num,
         )
 
 
@@ -115,15 +97,9 @@ class TensorWrapperDataset(Dataset):
 
 
 def create_dataset(config: DatasetConfig):
-    f0_paths = {Path(p).stem: Path(p) for p in glob(config.f0_glob)}
-    fn_list = sorted(f0_paths.keys())
-    assert len(fn_list) > 0
-
-    phoneme_paths = {Path(p).stem: Path(p) for p in glob(config.phoneme_glob)}
-    assert set(fn_list) == set(phoneme_paths.keys())
-
     phoneme_list_paths = {Path(p).stem: Path(p) for p in glob(config.phoneme_list_glob)}
-    assert set(fn_list) == set(phoneme_list_paths.keys())
+    fn_list = sorted(phoneme_list_paths.keys())
+    assert len(fn_list) > 0
 
     speaker_ids: Optional[Dict[str, int]] = None
     if config.speaker_dict_path is not None:
@@ -148,14 +124,12 @@ def create_dataset(config: DatasetConfig):
     def _dataset(fns, for_test=False):
         inputs = [
             LazyInput(
-                f0_path=f0_paths[fn],
-                phoneme_path=phoneme_paths[fn],
                 phoneme_list_path=phoneme_list_paths[fn],
             )
             for fn in fns
         ]
 
-        dataset = FeatureDataset(inputs=inputs)
+        dataset = FeatureDataset(inputs=inputs, phoneme_num=config.phoneme_num)
 
         if speaker_ids is not None:
             dataset = SpeakerFeatureDataset(

@@ -13,11 +13,9 @@ class Generator(object):
         self,
         config: Config,
         predictor: Union[Predictor, Path],
-        max_length: int = 1000,
         use_gpu: bool = True,
     ):
         self.config = config
-        self.max_length = max_length
         self.device = torch.device("cuda") if use_gpu else torch.device("cpu")
 
         if isinstance(predictor, Path):
@@ -42,13 +40,8 @@ class Generator(object):
                 speaker_id = torch.from_numpy(speaker_id)
             speaker_id = speaker_id.reshape((1,)).to(torch.int64).to(self.device)
 
-        d = self.predictor.generate(
-            phoneme_list=phoneme_list,
-            speaker_id=speaker_id,
-            max_length=self.max_length,
+        output = self.predictor(
+            phoneme_list=phoneme_list.unsqueeze(0),
+            speaker_id=speaker_id.unsqueeze(0),
         )
-
-        return dict(
-            f0=d["f0"].cpu().numpy(),
-            phoneme=d["phoneme"].cpu().numpy(),
-        )
+        return output.cpu().numpy()
