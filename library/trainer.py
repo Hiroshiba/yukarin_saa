@@ -1,5 +1,4 @@
 import warnings
-from copy import copy
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict
@@ -10,13 +9,11 @@ from pytorch_trainer.iterators import MultiprocessIterator
 from pytorch_trainer.training import Trainer, extensions
 from pytorch_trainer.training.updaters import StandardUpdater
 from tensorboardX import SummaryWriter
-from torch import optim
-from torch.optim.optimizer import Optimizer
 
 from library.config import Config
 from library.dataset import create_dataset
 from library.model import Model, create_network
-from library.utility.pytorch_utility import AmpUpdater, init_weights
+from library.utility.pytorch_utility import AmpUpdater, init_weights, make_optimizer
 from library.utility.trainer_extension import TensorboardReport, WandbReport
 from library.utility.trainer_utility import LowValueTrigger, create_iterator
 
@@ -59,16 +56,7 @@ def create_trainer(
     warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 
     # optimizer
-    cp: Dict[str, Any] = copy(config.train.optimizer)
-    n = cp.pop("name").lower()
-
-    optimizer: Optimizer
-    if n == "adam":
-        optimizer = optim.Adam(model.parameters(), **cp)
-    elif n == "sgd":
-        optimizer = optim.SGD(model.parameters(), **cp)
-    else:
-        raise ValueError(n)
+    optimizer = make_optimizer(config_dict=config.train.optimizer, model=model)
 
     # updater
     if not config.train.use_amp:
