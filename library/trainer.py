@@ -16,7 +16,7 @@ from torch.optim.optimizer import Optimizer
 from library.config import Config
 from library.dataset import create_dataset
 from library.model import Model, create_network
-from library.utility.pytorch_utility import init_weights
+from library.utility.pytorch_utility import AmpUpdater, init_weights
 from library.utility.trainer_extension import TensorboardReport, WandbReport
 from library.utility.trainer_utility import LowValueTrigger, create_iterator
 
@@ -71,12 +71,20 @@ def create_trainer(
         raise ValueError(n)
 
     # updater
-    updater = StandardUpdater(
-        iterator=train_iter,
-        optimizer=optimizer,
-        model=model,
-        device=device,
-    )
+    if not config.train.use_amp:
+        updater = StandardUpdater(
+            iterator=train_iter,
+            optimizer=optimizer,
+            model=model,
+            device=device,
+        )
+    else:
+        updater = AmpUpdater(
+            iterator=train_iter,
+            optimizer=optimizer,
+            model=model,
+            device=device,
+        )
 
     # trainer
     trigger_log = (config.train.log_iteration, "iteration")
