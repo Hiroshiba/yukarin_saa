@@ -9,7 +9,8 @@ from yukarin_s.utility.git_utility import get_branch_name, get_commit_id
 @dataclass
 class DatasetConfig:
     phoneme_list_glob: str
-    phoneme_num: int
+    f0_glob: Optional[str]
+    sampling_length: int
     speaker_dict_path: Optional[Path]
     speaker_size: Optional[int]
     test_num: int
@@ -25,11 +26,14 @@ class NetworkConfig:
     speaker_embedding_size: int
     hidden_size_list: List[int]
     kernel_size_list: List[int]
+    estimate_f0_flag: bool
 
 
 @dataclass
 class ModelConfig:
     eliminate_pause: bool
+    phoneme_length_loss_weight: float
+    f0_loss_weight: float
 
 
 @dataclass
@@ -73,4 +77,17 @@ class Config:
 
 
 def backward_compatible(d: Dict[str, Any]):
-    pass
+    if "sampling_length" not in d["dataset"]:
+        d["dataset"]["sampling_length"] = d["dataset"]["phoneme_num"]
+
+    if "f0_glob" not in d["dataset"]:
+        d["dataset"]["f0_glob"] = None
+
+    if "estimate_f0_flag" not in d["network"]:
+        d["network"]["estimate_f0_flag"] = False
+
+    if "phoneme_length_loss_weight" not in d["model"]:
+        d["model"]["phoneme_length_loss_weight"] = 1
+
+    if "f0_loss_weight" not in d["model"]:
+        d["model"]["f0_loss_weight"] = 0

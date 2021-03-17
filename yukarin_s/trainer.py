@@ -89,20 +89,6 @@ def create_trainer(
     trainer = Trainer(updater, stop_trigger=trigger_stop, out=output)
     writer = SummaryWriter(Path(output))
 
-    sample_data = datasets["train"][0]
-    writer.add_graph(
-        model.eval(),
-        input_to_model=(
-            sample_data["phoneme_list"].to(device).unsqueeze(0),
-            sample_data["phoneme_length"].to(device).unsqueeze(0),
-            (
-                sample_data["speaker_id"].to(device).unsqueeze(0)
-                if predictor.with_speaker
-                else None
-            ),
-        ),
-    )
-
     ext = extensions.Evaluator(test_iter, model, device=device)
     trainer.extend(ext, name="test", trigger=trigger_log)
 

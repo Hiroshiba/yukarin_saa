@@ -1,6 +1,7 @@
 dataset:
   phoneme_list_glob: "/path/to/phoneme_list/*.lab"
-  phoneme_num: 20
+  f0_glob: null
+  sampling_length: 20
   speaker_dict_path: "/path/to/speaker_dict.json"
   speaker_size: 100
   test_num: 10
@@ -14,9 +15,12 @@ network:
   speaker_embedding_size: 8
   hidden_size_list: [32, 32, 32]
   kernel_size_list: [5, 5, 5]
+  estimate_f0_flag: false
 
 model:
   eliminate_pause: false
+  phoneme_length_loss_weight: 1
+  f0_loss_weight: 0
 
 train:
   batch_size: 128
@@ -29,3 +33,4 @@ train:
 
 project:
   name: null
+  category: yukarin_s

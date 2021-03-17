@@ -14,6 +14,7 @@ class Predictor(nn.Module):
         speaker_embedding_size: int,
         hidden_size_list: List[int],
         kernel_size_list: List[int],
+        estimate_f0_flag: bool,
     ):
         layer_num = len(hidden_size_list)
         assert len(kernel_size_list) == layer_num
@@ -22,7 +23,7 @@ class Predictor(nn.Module):
 
         self.with_speaker = speaker_size > 0
         self.phoneme_size = phoneme_size
-        self.phoneme_padding_index = phoneme_size
+        self.estimate_f0_flag = estimate_f0_flag
 
         self.phoneme_embedder = nn.Embedding(
             num_embeddings=phoneme_size,
@@ -55,7 +56,8 @@ class Predictor(nn.Module):
 
         self.convs = nn.Sequential(*convs)
 
-        self.post = nn.Conv1d(hidden_size_list[-1], 1, kernel_size=1)
+        output_size = 1 if not estimate_f0_flag else 2
+        self.post = nn.Conv1d(hidden_size_list[-1], output_size, kernel_size=1)
 
     def forward(
         self,
@@ -74,8 +76,15 @@ class Predictor(nn.Module):
             h = torch.cat((h, speaker), dim=1)  # (batch_size, ?, length)
 
         h = self.convs(h)  # (batch_size, ?, length)
-        h = self.post(h).squeeze(1)  # (batch_size, length)
-        return h
+        h = self.post(h)  # (batch_size, ?, length)
+
+        phoneme_length = h[:, 0, :]  # (batch_size, length)
+
+        f0: Optional[Tensor] = None
+        if self.estimate_f0_flag:
+            f0 = h[:, 1, :]  # (batch_size, length)
+
+        return phoneme_length, f0
 
 
 def create_predictor(config: NetworkConfig):
@@ -86,4 +95,5 @@ def create_predictor(config: NetworkConfig):
         speaker_embedding_size=config.speaker_embedding_size,
         hidden_size_list=config.hidden_size_list,
         kernel_size_list=config.kernel_size_list,
+        estimate_f0_flag=config.estimate_f0_flag,
     )

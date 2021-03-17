@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Dict, Optional
 
 import numpy
 import torch
@@ -20,24 +20,43 @@ class Model(nn.Module):
         self,
         phoneme_list: Tensor,
         phoneme_length: Tensor,
+        padded: Tensor,
+        f0: Optional[Tensor] = None,
         speaker_id: Optional[Tensor] = None,
     ):
         batch_size = len(phoneme_list)
 
-        output = self.predictor(
+        output_phoneme_length, output_f0 = self.predictor(
             phoneme_list=phoneme_list,
             speaker_id=speaker_id,
         )
 
-        loss = F.l1_loss(output, phoneme_length, reduction="none")
+        values: Dict[str, Tensor] = {}
+
+        pl_loss = F.l1_loss(
+            output_phoneme_length[~padded], phoneme_length[~padded], reduction="none"
+        )
         if self.model_config.eliminate_pause:
-            loss = loss[phoneme_list != 0]
-        loss = loss.mean()
+            pl_loss = pl_loss[phoneme_list != 0]
+        pl_loss = pl_loss.mean() * self.model_config.phoneme_length_loss_weight
+        values["pl_loss"] = pl_loss
+
+        loss = pl_loss
+
+        if f0 is not None:
+            f0_loss = F.l1_loss(output_f0[~padded], f0[~padded], reduction="none")
+            if self.model_config.eliminate_pause:
+                f0_loss = f0_loss[phoneme_list != 0]
+            f0_loss = f0_loss.mean() * self.model_config.f0_loss_weight
+            values["f0_loss"] = f0_loss
+
+            loss = loss + f0_loss
+
+        values["loss"] = loss
 
         # report
-        values = dict(loss=loss)
         if not self.training:
-            weight = batch_size
+            weight = (~padded).to(torch.float32).mean() * batch_size
             values = {key: (l, weight) for key, l in values.items()}  # add weight
         report(values, self)
 

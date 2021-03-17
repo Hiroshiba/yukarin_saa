@@ -31,7 +31,7 @@ class Generator(object):
     ):
         if isinstance(phoneme_list, numpy.ndarray):
             phoneme_list = torch.from_numpy(phoneme_list)
-        phoneme_list = phoneme_list.to(self.device)
+        phoneme_list = phoneme_list.unsqueeze(0).to(self.device)
 
         if speaker_id is not None:
             if isinstance(speaker_id, int):
@@ -41,9 +41,13 @@ class Generator(object):
             speaker_id = speaker_id.reshape((1,)).to(torch.int64).to(self.device)
 
         with torch.no_grad():
-            output = self.predictor(
-                phoneme_list=phoneme_list.unsqueeze(0),
+            output_phoneme_length, output_f0 = self.predictor(
+                phoneme_list=phoneme_list,
                 speaker_id=speaker_id,
-            )[0]
+            )
 
-        return output.cpu().numpy()
+        output_phoneme_length = output_phoneme_length[0].cpu().numpy()
+        if output_f0 is not None:
+            output_f0 = output_f0[0].cpu().numpy()
+
+        return output_phoneme_length, output_f0
