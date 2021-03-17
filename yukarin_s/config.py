@@ -24,8 +24,10 @@ class NetworkConfig:
     phoneme_embedding_size: int
     speaker_size: int
     speaker_embedding_size: int
-    hidden_size_list: List[int]
-    kernel_size_list: List[int]
+    encoder_type: int
+    encoder_hidden_size: int
+    encoder_kernel_size: int
+    encoder_layer_num: int
     estimate_f0_flag: bool
 
 
@@ -77,17 +79,4 @@ class Config:
 
 
 def backward_compatible(d: Dict[str, Any]):
-    if "sampling_length" not in d["dataset"]:
-        d["dataset"]["sampling_length"] = d["dataset"]["phoneme_num"]
-
-    if "f0_glob" not in d["dataset"]:
-        d["dataset"]["f0_glob"] = None
-
-    if "estimate_f0_flag" not in d["network"]:
-        d["network"]["estimate_f0_flag"] = False
-
-    if "phoneme_length_loss_weight" not in d["model"]:
-        d["model"]["phoneme_length_loss_weight"] = 1
-
-    if "f0_loss_weight" not in d["model"]:
-        d["model"]["f0_loss_weight"] = 0
+    pass

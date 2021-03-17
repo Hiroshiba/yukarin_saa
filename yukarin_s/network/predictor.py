@@ -3,6 +3,7 @@ from typing import List, Optional
 import torch
 from torch import Tensor, nn
 from yukarin_s.config import NetworkConfig
+from yukarin_s.network.encoder import EncoderType, create_encoder
 
 
 class Predictor(nn.Module):
@@ -12,13 +13,12 @@ class Predictor(nn.Module):
         phoneme_embedding_size: int,
         speaker_size: int,
         speaker_embedding_size: int,
-        hidden_size_list: List[int],
-        kernel_size_list: List[int],
+        encoder_type: EncoderType,
+        encoder_hidden_size: int,
+        encoder_kernel_size: int,
+        encoder_layer_num: int,
         estimate_f0_flag: bool,
     ):
-        layer_num = len(hidden_size_list)
-        assert len(kernel_size_list) == layer_num
-
         super().__init__()
 
         self.with_speaker = speaker_size > 0
@@ -40,24 +40,18 @@ class Predictor(nn.Module):
 
         input_size = phoneme_embedding_size + speaker_embedding_size
 
-        convs: List[nn.Module] = []
-        for i in range(layer_num):
-            convs.append(
-                nn.utils.weight_norm(
-                    nn.Conv1d(
-                        in_channels=(hidden_size_list[i - 1] if i > 0 else input_size),
-                        out_channels=hidden_size_list[i],
-                        kernel_size=kernel_size_list[i],
-                        padding=kernel_size_list[i] // 2,
-                    )
-                )
-            )
-            convs.append(nn.SiLU(inplace=True))
-
-        self.convs = nn.Sequential(*convs)
+        self.encoder = create_encoder(
+            type=encoder_type,
+            input_size=input_size,
+            hidden_size=encoder_hidden_size,
+            kernel_size=encoder_kernel_size,
+            layer_num=encoder_layer_num,
+        )
 
         output_size = 1 if not estimate_f0_flag else 2
-        self.post = nn.Conv1d(hidden_size_list[-1], output_size, kernel_size=1)
+        self.post = nn.Conv1d(
+            self.encoder.output_hidden_size, output_size, kernel_size=1
+        )
 
     def forward(
         self,
@@ -75,7 +69,7 @@ class Predictor(nn.Module):
             )  # (batch_size, ?, length)
             h = torch.cat((h, speaker), dim=1)  # (batch_size, ?, length)
 
-        h = self.convs(h)  # (batch_size, ?, length)
+        h = self.encoder(h)  # (batch_size, ?, length)
         h = self.post(h)  # (batch_size, ?, length)
 
         phoneme_length = h[:, 0, :]  # (batch_size, length)
@@ -93,7 +87,9 @@ def create_predictor(config: NetworkConfig):
         phoneme_embedding_size=config.phoneme_embedding_size,
         speaker_size=config.speaker_size,
         speaker_embedding_size=config.speaker_embedding_size,
-        hidden_size_list=config.hidden_size_list,
-        kernel_size_list=config.kernel_size_list,
+        encoder_type=EncoderType(config.encoder_type),
+        encoder_hidden_size=config.encoder_hidden_size,
+        encoder_kernel_size=config.encoder_kernel_size,
+        encoder_layer_num=config.encoder_layer_num,
         estimate_f0_flag=config.estimate_f0_flag,
     )
