@@ -13,15 +13,15 @@ dataset:
 network:
   phoneme_size: 39
   phoneme_embedding_size: 8
-  phoneme_encoder_type: cnn
-  phoneme_encoder_hidden_size: 32
-  phoneme_encoder_kernel_size: 5
-  phoneme_encoder_layer_num: 3
-  accent_embedding_size: 8
-  accent_encoder_type: cnn
-  accent_encoder_hidden_size: 32
-  accent_encoder_kernel_size: 5
-  accent_encoder_layer_num: 3
+  phoneme_encoder_type: "uni_skip_dil_cnn"
+  phoneme_encoder_hidden_size: 8
+  phoneme_encoder_kernel_size: 3
+  phoneme_encoder_layer_num: 2
+  accent_embedding_size: 4
+  accent_encoder_type: "uni_skip_dil_cnn"
+  accent_encoder_hidden_size: 8
+  accent_encoder_kernel_size: 3
+  accent_encoder_layer_num: 4
   speaker_size: 100
   speaker_embedding_size: 8
 
@@ -41,4 +41,4 @@ train:
 
 project:
   name: null
-  category: yukarin_s
+  category: yukarin_sa

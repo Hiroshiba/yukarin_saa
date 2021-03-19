@@ -10,7 +10,7 @@ from acoustic_feature_extractor.data.sampling_data import SamplingData
 from torch.utils.data._utils.collate import default_convert
 from torch.utils.data.dataset import ConcatDataset, Dataset
 
-from yukarin_s.config import DatasetConfig
+from yukarin_sa.config import DatasetConfig
 
 
 def f0_mean(f0: numpy.ndarray, rate: float, split_second_list: List[float]):
@@ -119,6 +119,8 @@ class FeatureDataset(Dataset):
 
         return self.extract_input(
             phoneme_list_data=input.phoneme_list,
+            start_accent=input.start_accent,
+            end_accent=input.end_accent,
             f0_data=input.f0,
             sampling_length=self.sampling_length,
         )

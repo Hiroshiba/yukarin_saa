@@ -3,7 +3,7 @@ from typing import List
 
 import numpy
 import pytest
-from yukarin_s.dataset import f0_mean
+from yukarin_sa.dataset import f0_mean
 
 
 @pytest.mark.parametrize(

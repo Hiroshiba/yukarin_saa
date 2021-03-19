@@ -2,8 +2,8 @@ from typing import Optional
 
 import torch
 from torch import Tensor, nn
-from yukarin_s.config import NetworkConfig
-from yukarin_s.network.encoder import EncoderType, create_encoder
+from yukarin_sa.config import NetworkConfig
+from yukarin_sa.network.encoder import EncoderType, create_encoder
 
 
 class Predictor(nn.Module):
