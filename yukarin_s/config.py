@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from yukarin_s.utility import dataclass_utility
 from yukarin_s.utility.git_utility import get_branch_name, get_commit_id
@@ -9,7 +9,9 @@ from yukarin_s.utility.git_utility import get_branch_name, get_commit_id
 @dataclass
 class DatasetConfig:
     phoneme_list_glob: str
-    f0_glob: Optional[str]
+    start_accent_glob: str
+    end_accent_glob: str
+    f0_glob: str
     sampling_length: int
     speaker_dict_path: Optional[Path]
     speaker_size: Optional[int]
@@ -22,13 +24,17 @@ class DatasetConfig:
 class NetworkConfig:
     phoneme_size: int
     phoneme_embedding_size: int
+    phoneme_encoder_type: str
+    phoneme_encoder_hidden_size: int
+    phoneme_encoder_kernel_size: int
+    phoneme_encoder_layer_num: int
+    accent_embedding_size: int
+    accent_encoder_type: str
+    accent_encoder_hidden_size: int
+    accent_encoder_kernel_size: int
+    accent_encoder_layer_num: int
     speaker_size: int
     speaker_embedding_size: int
-    encoder_type: int
-    encoder_hidden_size: int
-    encoder_kernel_size: int
-    encoder_layer_num: int
-    estimate_f0_flag: bool
 
 
 @dataclass

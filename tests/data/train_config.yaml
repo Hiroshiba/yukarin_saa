@@ -1,6 +1,8 @@
 dataset:
   phoneme_list_glob: "/path/to/phoneme_list/*.lab"
-  f0_glob: null
+  start_accent_glob: "/path/to/start_accent/*.txt"
+  end_accent_glob: "/path/to/end_accent/*.txt"
+  f0_glob: "/path/to/f0/*.npy"
   sampling_length: 20
   speaker_dict_path: "/path/to/speaker_dict.json"
   speaker_size: 100
@@ -11,13 +13,17 @@ dataset:
 network:
   phoneme_size: 39
   phoneme_embedding_size: 8
+  phoneme_encoder_type: cnn
+  phoneme_encoder_hidden_size: 32
+  phoneme_encoder_kernel_size: 5
+  phoneme_encoder_layer_num: 3
+  accent_embedding_size: 8
+  accent_encoder_type: cnn
+  accent_encoder_hidden_size: 32
+  accent_encoder_kernel_size: 5
+  accent_encoder_layer_num: 3
   speaker_size: 100
   speaker_embedding_size: 8
-  encoder_type: cnn
-  encoder_hidden_size: 32
-  encoder_kernel_size: 5
-  encoder_layer_num: 3
-  estimate_f0_flag: false
 
 model:
   eliminate_pause: false

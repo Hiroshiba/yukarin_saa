@@ -23,18 +23,28 @@ def f0_mean(f0: numpy.ndarray, rate: float, split_second_list: List[float]):
 @dataclass
 class Input:
     phoneme_list: List[JvsPhoneme]
-    f0: Optional[SamplingData]
+    start_accent: numpy.ndarray
+    end_accent: numpy.ndarray
+    f0: SamplingData
 
 
 @dataclass
 class LazyInput:
-    phoneme_list_path: SamplingData
-    f0_path: Optional[Path]
+    phoneme_list_path: Path
+    start_accent_path: Path
+    end_accent_path: Path
+    f0_path: Path
 
     def generate(self):
         return Input(
             phoneme_list=JvsPhoneme.load_julius_list(self.phoneme_list_path),
-            f0=SamplingData.load(self.f0_path) if self.f0_path is not None else None,
+            start_accent=numpy.array(
+                [bool(int(s)) for s in self.start_accent_path.read_text().split()]
+            ),
+            end_accent=numpy.array(
+                [bool(int(s)) for s in self.end_accent_path.read_text().split()]
+            ),
+            f0=SamplingData.load(self.f0_path),
         )
 
 
@@ -50,7 +60,9 @@ class FeatureDataset(Dataset):
     @staticmethod
     def extract_input(
         phoneme_list_data: List[JvsPhoneme],
-        f0_data: Optional[SamplingData],
+        start_accent: numpy.ndarray,
+        end_accent: numpy.ndarray,
+        f0_data: SamplingData,
         sampling_length: int,
     ):
         length = len(phoneme_list_data)
@@ -63,11 +75,18 @@ class FeatureDataset(Dataset):
 
         phoneme_list = numpy.array([p.phoneme_id for p in phoneme_list_data])
         phoneme_length = numpy.array([p.end - p.start for p in phoneme_list_data])
-
+        f0 = f0_mean(
+            f0=f0_data.array,
+            rate=f0_data.rate,
+            split_second_list=[p.end for p in phoneme_list_data[:-1]],
+        )
         offset = numpy.random.randint(len(phoneme_list_data) - sampling_length + 1)
 
         phoneme_list = phoneme_list[offset : offset + sampling_length]
         phoneme_length = phoneme_length[offset : offset + sampling_length]
+        start_accent = start_accent[offset : offset + sampling_length]
+        end_accent = end_accent[offset : offset + sampling_length]
+        f0 = f0[offset : offset + sampling_length]
         padded = numpy.zeros_like(phoneme_length, dtype=bool)
 
         pad_pre, pad_post = 0, 0
@@ -76,27 +95,19 @@ class FeatureDataset(Dataset):
             pad_post = padding_length - pad_pre
             phoneme_list = numpy.pad(phoneme_list, [pad_pre, pad_post])
             phoneme_length = numpy.pad(phoneme_length, [pad_pre, pad_post])
+            start_accent = numpy.pad(start_accent, [pad_pre, pad_post])
+            end_accent = numpy.pad(end_accent, [pad_pre, pad_post])
+            f0 = numpy.pad(f0, [pad_pre, pad_post])
             padded = numpy.pad(padded, [pad_pre, pad_post], constant_values=True)
 
-        data = dict(
+        return dict(
             phoneme_list=phoneme_list.astype(numpy.int64),
             phoneme_length=phoneme_length.astype(numpy.float32),
+            start_accent=start_accent.astype(numpy.int64),
+            end_accent=end_accent.astype(numpy.int64),
+            f0=f0.astype(numpy.float32),
             padded=padded,
         )
-
-        if f0_data is not None:
-            f0 = f0_mean(
-                f0=f0_data.array,
-                rate=f0_data.rate,
-                split_second_list=[p.end for p in phoneme_list_data[:-1]],
-            )
-            f0 = f0[offset : offset + sampling_length]
-            if padding_length > 0:
-                f0 = numpy.pad(f0, [pad_pre, pad_post])
-
-            data["f0"] = f0.astype(numpy.float32)
-
-        return data
 
     def __len__(self):
         return len(self.inputs)
@@ -144,10 +155,14 @@ def create_dataset(config: DatasetConfig):
     fn_list = sorted(phoneme_list_paths.keys())
     assert len(fn_list) > 0
 
-    f0_paths: Optional[Dict[str, Path]] = None
-    if config.f0_glob is not None:
-        f0_paths = {Path(p).stem: Path(p) for p in glob(config.f0_glob)}
-        assert set(fn_list) == set(f0_paths.keys())
+    start_accent_paths = {Path(p).stem: Path(p) for p in glob(config.start_accent_glob)}
+    assert set(fn_list) == set(start_accent_paths.keys())
+
+    end_accent_paths = {Path(p).stem: Path(p) for p in glob(config.end_accent_glob)}
+    assert set(fn_list) == set(end_accent_paths.keys())
+
+    f0_paths = {Path(p).stem: Path(p) for p in glob(config.f0_glob)}
+    assert set(fn_list) == set(f0_paths.keys())
 
     speaker_ids: Optional[Dict[str, int]] = None
     if config.speaker_dict_path is not None:
@@ -173,7 +188,9 @@ def create_dataset(config: DatasetConfig):
         inputs = [
             LazyInput(
                 phoneme_list_path=phoneme_list_paths[fn],
-                f0_path=f0_paths[fn] if f0_paths is not None else None,
+                start_accent_path=start_accent_paths[fn],
+                end_accent_path=end_accent_paths[fn],
+                f0_path=f0_paths[fn],
             )
             for fn in fns
         ]
