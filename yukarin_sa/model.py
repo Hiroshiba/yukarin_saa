@@ -1,6 +1,5 @@
 from typing import Dict, Optional
 
-import numpy
 import torch
 import torch.nn.functional as F
 from pytorch_trainer import report
@@ -21,8 +20,8 @@ class Model(nn.Module):
         phoneme_list: Tensor,
         phoneme_length: Tensor,
         padded: Tensor,
-        start_accent: Tensor,
-        end_accent: Tensor,
+        start_accent_list: Tensor,
+        end_accent_list: Tensor,
         f0: Tensor,
         speaker_id: Optional[Tensor] = None,
     ):
@@ -30,8 +29,8 @@ class Model(nn.Module):
 
         output_phoneme_length, output_f0 = self.predictor(
             phoneme_list=phoneme_list,
-            start_accent=start_accent,
-            end_accent=end_accent,
+            start_accent_list=start_accent_list,
+            end_accent_list=end_accent_list,
             speaker_id=speaker_id,
         )
 

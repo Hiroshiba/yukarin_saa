@@ -72,15 +72,15 @@ class Predictor(nn.Module):
     def forward(
         self,
         phoneme_list: Tensor,  # (batch_size, length)
-        start_accent: Optional[Tensor],  # (batch_size, length)
-        end_accent: Optional[Tensor],  # (batch_size, length)
+        start_accent_list: Tensor,  # (batch_size, length)
+        end_accent_list: Tensor,  # (batch_size, length)
         speaker_id: Optional[Tensor],  # (batch_size, )
     ):
         ph = self.phoneme_embedder(phoneme_list)  # (batch_size, length, ?)
         ph = ph.transpose(1, 2)  # (batch_size, ?, length)
 
-        sah = self.start_accent_embedder(start_accent)  # (batch, length, ?)
-        eah = self.end_accent_embedder(end_accent)  # (batch, length, ?)
+        sah = self.start_accent_embedder(start_accent_list)  # (batch, length, ?)
+        eah = self.end_accent_embedder(end_accent_list)  # (batch, length, ?)
         ah = torch.cat((sah, eah), dim=2)  # (batch, length, ?)
         ah = ah.transpose(1, 2)  # (batch, ?, length)
 

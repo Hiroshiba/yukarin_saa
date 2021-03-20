@@ -9,8 +9,8 @@ from yukarin_sa.utility.git_utility import get_branch_name, get_commit_id
 @dataclass
 class DatasetConfig:
     phoneme_list_glob: str
-    start_accent_glob: str
-    end_accent_glob: str
+    start_accent_list_glob: str
+    end_accent_list_glob: str
     f0_glob: str
     sampling_length: int
     speaker_dict_path: Optional[Path]
@@ -85,4 +85,7 @@ class Config:
 
 
 def backward_compatible(d: Dict[str, Any]):
-    pass
+    if "start_accent_list_glob" not in d["dataset"]:
+        d["dataset"]["start_accent_list_glob"] = d["dataset"].pop("start_accent_glob")
+    if "end_accent_list_glob" not in d["dataset"]:
+        d["dataset"]["end_accent_list_glob"] = d["dataset"].pop("end_accent_glob")
