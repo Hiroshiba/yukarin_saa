@@ -13,6 +13,7 @@ class DatasetConfig:
     end_accent_list_glob: str
     f0_glob: str
     sampling_length: int
+    f0_process_mode: str
     speaker_dict_path: Optional[Path]
     speaker_size: Optional[int]
     test_num: int
@@ -89,3 +90,6 @@ def backward_compatible(d: Dict[str, Any]):
         d["dataset"]["start_accent_list_glob"] = d["dataset"].pop("start_accent_glob")
     if "end_accent_list_glob" not in d["dataset"]:
         d["dataset"]["end_accent_list_glob"] = d["dataset"].pop("end_accent_glob")
+
+    if "f0_process_mode" not in d["dataset"]:
+        d["dataset"]["f0_process_mode"] = "phoneme"

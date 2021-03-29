@@ -4,6 +4,7 @@ dataset:
   end_accent_glob: "/path/to/end_accent/*.txt"
   f0_glob: "/path/to/f0/*.npy"
   sampling_length: 20
+  f0_process_mode: phoneme
   speaker_dict_path: "/path/to/speaker_dict.json"
   speaker_size: 100
   test_num: 10
@@ -28,7 +29,7 @@ network:
 model:
   eliminate_pause: false
   phoneme_length_loss_weight: 1
-  f0_loss_weight: 0
+  f0_loss_weight: 1
 
 train:
   batch_size: 128

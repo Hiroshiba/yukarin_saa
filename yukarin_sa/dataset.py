@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from enum import Enum
 from glob import glob
 from pathlib import Path
 from typing import Dict, List, Optional, Union
@@ -11,6 +12,13 @@ from torch.utils.data._utils.collate import default_convert
 from torch.utils.data.dataset import ConcatDataset, Dataset
 
 from yukarin_sa.config import DatasetConfig
+
+mora_phoneme_list = ["a", "i", "u", "e", "o", "A", "I", "U", "E", "O", "N", "cl", "pau"]
+
+
+class F0ProcessMode(str, Enum):
+    phoneme = "phoneme"
+    mora_vowel = "mora_vowel"
 
 
 def f0_mean(f0: numpy.ndarray, rate: float, split_second_list: List[float]):
@@ -53,9 +61,11 @@ class FeatureDataset(Dataset):
         self,
         inputs: List[Union[Input, LazyInput]],
         sampling_length: int,
+        f0_process_mode: F0ProcessMode,
     ):
         self.inputs = inputs
         self.sampling_length = sampling_length
+        self.f0_process_mode = f0_process_mode
 
     @staticmethod
     def extract_input(
@@ -64,7 +74,22 @@ class FeatureDataset(Dataset):
         end_accent_list: numpy.ndarray,
         f0_data: SamplingData,
         sampling_length: int,
+        f0_process_mode: F0ProcessMode,
     ):
+        if f0_process_mode == F0ProcessMode.mora_vowel:
+            indexes = [
+                i
+                for i, p in enumerate(phoneme_list_data)
+                if p.phoneme in mora_phoneme_list
+            ]
+
+            phoneme_list_data = [phoneme_list_data[i] for i in indexes]
+            start_accent_list = start_accent_list[indexes]
+            end_accent_list = end_accent_list[indexes]
+
+            for p1, p2 in zip(phoneme_list_data[:-1], phoneme_list_data[1:]):
+                p2.start = p1.end
+
         length = len(phoneme_list_data)
 
         if sampling_length > length:
@@ -80,8 +105,8 @@ class FeatureDataset(Dataset):
             rate=f0_data.rate,
             split_second_list=[p.end for p in phoneme_list_data[:-1]],
         )
-        offset = numpy.random.randint(len(phoneme_list_data) - sampling_length + 1)
 
+        offset = numpy.random.randint(len(phoneme_list_data) - sampling_length + 1)
         phoneme_list = phoneme_list[offset : offset + sampling_length]
         phoneme_length = phoneme_length[offset : offset + sampling_length]
         start_accent_list = start_accent_list[offset : offset + sampling_length]
@@ -123,6 +148,7 @@ class FeatureDataset(Dataset):
             end_accent_list=input.end_accent_list,
             f0_data=input.f0,
             sampling_length=self.sampling_length,
+            f0_process_mode=self.f0_process_mode,
         )
 
 
@@ -201,7 +227,11 @@ def create_dataset(config: DatasetConfig):
             for fn in fns
         ]
 
-        dataset = FeatureDataset(inputs=inputs, sampling_length=config.sampling_length)
+        dataset = FeatureDataset(
+            inputs=inputs,
+            sampling_length=config.sampling_length,
+            f0_process_mode=F0ProcessMode(config.f0_process_mode),
+        )
 
         if speaker_ids is not None:
             dataset = SpeakerFeatureDataset(
