@@ -45,16 +45,20 @@ class Model(nn.Module):
             pl_loss = pl_loss[phoneme_list != 0]
             f0_loss = f0_loss[phoneme_list != 0]
 
-        pl_loss = pl_loss.mean() * self.model_config.phoneme_length_loss_weight
         f0_loss = f0_loss.mean() * self.model_config.f0_loss_weight
-
-        loss = pl_loss + f0_loss
+        loss = f0_loss
 
         values = dict(
-            loss=loss,
-            pl_loss=pl_loss,
             f0_loss=f0_loss,
         )
+
+        if self.model_config.phoneme_length_loss_weight > 0:
+            pl_loss = pl_loss.mean() * self.model_config.phoneme_length_loss_weight
+            values["pl_loss"] = pl_loss
+
+            loss = loss + pl_loss
+
+        values["loss"] = loss
 
         # report
         if not self.training:
