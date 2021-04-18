@@ -33,6 +33,8 @@ class Input:
     phoneme_list: List[JvsPhoneme]
     start_accent_list: numpy.ndarray
     end_accent_list: numpy.ndarray
+    start_accent_phrase_list: numpy.ndarray
+    end_accent_phrase_list: numpy.ndarray
     f0: SamplingData
 
 
@@ -41,6 +43,8 @@ class LazyInput:
     phoneme_list_path: Path
     start_accent_list_path: Path
     end_accent_list_path: Path
+    start_accent_phrase_list_path: Path
+    end_accent_phrase_list_path: Path
     f0_path: Path
 
     def generate(self):
@@ -51,6 +55,18 @@ class LazyInput:
             ),
             end_accent_list=numpy.array(
                 [bool(int(s)) for s in self.end_accent_list_path.read_text().split()]
+            ),
+            start_accent_phrase_list=numpy.array(
+                [
+                    bool(int(s))
+                    for s in self.start_accent_phrase_list_path.read_text().split()
+                ]
+            ),
+            end_accent_phrase_list=numpy.array(
+                [
+                    bool(int(s))
+                    for s in self.end_accent_phrase_list_path.read_text().split()
+                ]
             ),
             f0=SamplingData.load(self.f0_path),
         )
@@ -72,6 +88,8 @@ class FeatureDataset(Dataset):
         phoneme_list_data: List[JvsPhoneme],
         start_accent_list: numpy.ndarray,
         end_accent_list: numpy.ndarray,
+        start_accent_phrase_list: numpy.ndarray,
+        end_accent_phrase_list: numpy.ndarray,
         f0_data: SamplingData,
         sampling_length: int,
         f0_process_mode: F0ProcessMode,
@@ -86,6 +104,8 @@ class FeatureDataset(Dataset):
             phoneme_list_data = [phoneme_list_data[i] for i in indexes]
             start_accent_list = start_accent_list[indexes]
             end_accent_list = end_accent_list[indexes]
+            start_accent_phrase_list = start_accent_phrase_list[indexes]
+            end_accent_phrase_list = end_accent_phrase_list[indexes]
 
             for p1, p2 in zip(phoneme_list_data[:-1], phoneme_list_data[1:]):
                 p2.start = p1.end
@@ -111,6 +131,12 @@ class FeatureDataset(Dataset):
         phoneme_length = phoneme_length[offset : offset + sampling_length]
         start_accent_list = start_accent_list[offset : offset + sampling_length]
         end_accent_list = end_accent_list[offset : offset + sampling_length]
+        start_accent_phrase_list = start_accent_phrase_list[
+            offset : offset + sampling_length
+        ]
+        end_accent_phrase_list = end_accent_phrase_list[
+            offset : offset + sampling_length
+        ]
         f0 = f0[offset : offset + sampling_length]
         padded = numpy.zeros_like(phoneme_length, dtype=bool)
 
@@ -122,6 +148,12 @@ class FeatureDataset(Dataset):
             phoneme_length = numpy.pad(phoneme_length, [pad_pre, pad_post])
             start_accent_list = numpy.pad(start_accent_list, [pad_pre, pad_post])
             end_accent_list = numpy.pad(end_accent_list, [pad_pre, pad_post])
+            start_accent_phrase_list = numpy.pad(
+                start_accent_phrase_list, [pad_pre, pad_post]
+            )
+            end_accent_phrase_list = numpy.pad(
+                end_accent_phrase_list, [pad_pre, pad_post]
+            )
             f0 = numpy.pad(f0, [pad_pre, pad_post])
             padded = numpy.pad(padded, [pad_pre, pad_post], constant_values=True)
 
@@ -130,6 +162,8 @@ class FeatureDataset(Dataset):
             phoneme_length=phoneme_length.astype(numpy.float32),
             start_accent_list=start_accent_list.astype(numpy.int64),
             end_accent_list=end_accent_list.astype(numpy.int64),
+            start_accent_phrase_list=start_accent_phrase_list.astype(numpy.int64),
+            end_accent_phrase_list=end_accent_phrase_list.astype(numpy.int64),
             f0=f0.astype(numpy.float32),
             padded=padded,
         )
@@ -146,6 +180,8 @@ class FeatureDataset(Dataset):
             phoneme_list_data=input.phoneme_list,
             start_accent_list=input.start_accent_list,
             end_accent_list=input.end_accent_list,
+            start_accent_phrase_list=input.start_accent_phrase_list,
+            end_accent_phrase_list=input.end_accent_phrase_list,
             f0_data=input.f0,
             sampling_length=self.sampling_length,
             f0_process_mode=self.f0_process_mode,
@@ -193,6 +229,16 @@ def create_dataset(config: DatasetConfig):
     }
     assert set(fn_list) == set(end_accent_list_paths.keys())
 
+    start_accent_phrase_list_paths = {
+        Path(p).stem: Path(p) for p in glob(config.start_accent_phrase_list_glob)
+    }
+    assert set(fn_list) == set(start_accent_phrase_list_paths.keys())
+
+    end_accent_phrase_list_paths = {
+        Path(p).stem: Path(p) for p in glob(config.end_accent_phrase_list_glob)
+    }
+    assert set(fn_list) == set(end_accent_phrase_list_paths.keys())
+
     f0_paths = {Path(p).stem: Path(p) for p in glob(config.f0_glob)}
     assert set(fn_list) == set(f0_paths.keys())
 
@@ -222,6 +268,8 @@ def create_dataset(config: DatasetConfig):
                 phoneme_list_path=phoneme_list_paths[fn],
                 start_accent_list_path=start_accent_list_paths[fn],
                 end_accent_list_path=end_accent_list_paths[fn],
+                start_accent_phrase_list_path=start_accent_phrase_list_paths[fn],
+                end_accent_phrase_list_path=end_accent_phrase_list_paths[fn],
                 f0_path=f0_paths[fn],
             )
             for fn in fns

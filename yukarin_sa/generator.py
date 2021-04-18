@@ -29,6 +29,8 @@ class Generator(object):
         phoneme_list: Union[numpy.ndarray, torch.Tensor],
         start_accent_list: Union[numpy.ndarray, torch.Tensor],
         end_accent_list: Union[numpy.ndarray, torch.Tensor],
+        start_accent_phrase_list: Union[numpy.ndarray, torch.Tensor],
+        end_accent_phrase_list: Union[numpy.ndarray, torch.Tensor],
         speaker_id: Optional[Union[int, numpy.ndarray, torch.Tensor]],
     ):
         if isinstance(phoneme_list, numpy.ndarray):
@@ -43,6 +45,14 @@ class Generator(object):
             end_accent_list = torch.from_numpy(end_accent_list)
         end_accent_list = end_accent_list.unsqueeze(0).to(self.device)
 
+        if isinstance(start_accent_phrase_list, numpy.ndarray):
+            start_accent_phrase_list = torch.from_numpy(start_accent_phrase_list)
+        start_accent_phrase_list = start_accent_phrase_list.unsqueeze(0).to(self.device)
+
+        if isinstance(end_accent_phrase_list, numpy.ndarray):
+            end_accent_phrase_list = torch.from_numpy(end_accent_phrase_list)
+        end_accent_phrase_list = end_accent_phrase_list.unsqueeze(0).to(self.device)
+
         if speaker_id is not None:
             if isinstance(speaker_id, int):
                 speaker_id = numpy.array(speaker_id)
@@ -55,11 +65,11 @@ class Generator(object):
                 phoneme_list=phoneme_list,
                 start_accent_list=start_accent_list,
                 end_accent_list=end_accent_list,
+                start_accent_phrase_list=start_accent_phrase_list,
+                end_accent_phrase_list=end_accent_phrase_list,
                 speaker_id=speaker_id,
             )
 
         output_phoneme_length = output_phoneme_length[0].cpu().numpy()
-        if output_f0 is not None:
-            output_f0 = output_f0[0].cpu().numpy()
-
+        output_f0 = output_f0[0].cpu().numpy()
         return output_phoneme_length, output_f0

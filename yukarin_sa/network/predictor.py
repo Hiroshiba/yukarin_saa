@@ -15,7 +15,6 @@ class Predictor(nn.Module):
         phoneme_encoder_hidden_size: int,
         phoneme_encoder_kernel_size: int,
         phoneme_encoder_layer_num: int,
-        accent_embedding_size: int,
         accent_encoder_type: EncoderType,
         accent_encoder_hidden_size: int,
         accent_encoder_kernel_size: int,
@@ -38,15 +37,6 @@ class Predictor(nn.Module):
             else None
         )
 
-        self.start_accent_embedder = nn.Embedding(
-            num_embeddings=2,
-            embedding_dim=accent_embedding_size,
-        )
-        self.end_accent_embedder = nn.Embedding(
-            num_embeddings=2,
-            embedding_dim=accent_embedding_size,
-        )
-
         self.phoneme_encoder = create_encoder(
             type=phoneme_encoder_type,
             input_size=phoneme_embedding_size + speaker_embedding_size,
@@ -57,7 +47,7 @@ class Predictor(nn.Module):
 
         self.accent_encoder = create_encoder(
             type=accent_encoder_type,
-            input_size=accent_embedding_size * 2 + speaker_embedding_size,
+            input_size=4 + speaker_embedding_size,
             hidden_size=accent_encoder_hidden_size,
             kernel_size=accent_encoder_kernel_size,
             layer_num=accent_encoder_layer_num,
@@ -74,15 +64,24 @@ class Predictor(nn.Module):
         phoneme_list: Tensor,  # (batch_size, length)
         start_accent_list: Tensor,  # (batch_size, length)
         end_accent_list: Tensor,  # (batch_size, length)
+        start_accent_phrase_list: Tensor,  # (batch_size, length)
+        end_accent_phrase_list: Tensor,  # (batch_size, length)
         speaker_id: Optional[Tensor],  # (batch_size, )
     ):
         ph = self.phoneme_embedder(phoneme_list)  # (batch_size, length, ?)
         ph = ph.transpose(1, 2)  # (batch_size, ?, length)
 
-        sah = self.start_accent_embedder(start_accent_list)  # (batch, length, ?)
-        eah = self.end_accent_embedder(end_accent_list)  # (batch, length, ?)
-        ah = torch.cat((sah, eah), dim=2)  # (batch, length, ?)
-        ah = ah.transpose(1, 2)  # (batch, ?, length)
+        ah = torch.stack(
+            [
+                start_accent_list,
+                end_accent_list,
+                start_accent_phrase_list,
+                end_accent_phrase_list,
+            ],
+            dim=1,
+        ).to(
+            ph.dtype
+        )  # (batch, ?, length)
 
         if self.speaker_embedder is not None and speaker_id is not None:
             speaker_id = self.speaker_embedder(speaker_id)  # (batch_size, ?)
@@ -111,7 +110,6 @@ def create_predictor(config: NetworkConfig):
         phoneme_encoder_hidden_size=config.phoneme_encoder_hidden_size,
         phoneme_encoder_kernel_size=config.phoneme_encoder_kernel_size,
         phoneme_encoder_layer_num=config.phoneme_encoder_layer_num,
-        accent_embedding_size=config.accent_embedding_size,
         accent_encoder_type=EncoderType(config.accent_encoder_type),
         accent_encoder_hidden_size=config.accent_encoder_hidden_size,
         accent_encoder_kernel_size=config.accent_encoder_kernel_size,

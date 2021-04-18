@@ -22,6 +22,8 @@ class Model(nn.Module):
         padded: Tensor,
         start_accent_list: Tensor,
         end_accent_list: Tensor,
+        start_accent_phrase_list: Tensor,
+        end_accent_phrase_list: Tensor,
         f0: Tensor,
         speaker_id: Optional[Tensor] = None,
     ):
@@ -31,6 +33,8 @@ class Model(nn.Module):
             phoneme_list=phoneme_list,
             start_accent_list=start_accent_list,
             end_accent_list=end_accent_list,
+            start_accent_phrase_list=start_accent_phrase_list,
+            end_accent_phrase_list=end_accent_phrase_list,
             speaker_id=speaker_id,
         )
 
