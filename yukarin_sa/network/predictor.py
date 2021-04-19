@@ -25,8 +25,9 @@ class Predictor(nn.Module):
         super().__init__()
 
         self.phoneme_embedder = nn.Embedding(
-            num_embeddings=phoneme_size,
+            num_embeddings=phoneme_size + 1,  # empty consonant
             embedding_dim=phoneme_embedding_size,
+            padding_idx=0,
         )
         self.speaker_embedder = (
             nn.Embedding(
@@ -62,13 +63,16 @@ class Predictor(nn.Module):
     def forward(
         self,
         phoneme_list: Tensor,  # (batch_size, length)
+        consonant_phoneme_list: Optional[Tensor],  # (batch_size, length)
         start_accent_list: Tensor,  # (batch_size, length)
         end_accent_list: Tensor,  # (batch_size, length)
         start_accent_phrase_list: Tensor,  # (batch_size, length)
         end_accent_phrase_list: Tensor,  # (batch_size, length)
         speaker_id: Optional[Tensor],  # (batch_size, )
     ):
-        ph = self.phoneme_embedder(phoneme_list)  # (batch_size, length, ?)
+        ph = self.phoneme_embedder(phoneme_list + 1)  # (batch_size, length, ?)
+        if consonant_phoneme_list is not None:
+            ph = ph + self.phoneme_embedder(consonant_phoneme_list + 1)
         ph = ph.transpose(1, 2)  # (batch_size, ?, length)
 
         ah = torch.stack(

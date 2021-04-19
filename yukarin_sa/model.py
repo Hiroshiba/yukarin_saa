@@ -25,12 +25,14 @@ class Model(nn.Module):
         start_accent_phrase_list: Tensor,
         end_accent_phrase_list: Tensor,
         f0: Tensor,
+        consonant_phoneme_list: Optional[Tensor] = None,
         speaker_id: Optional[Tensor] = None,
     ):
         batch_size = len(phoneme_list)
 
         output_phoneme_length, output_f0 = self.predictor(
             phoneme_list=phoneme_list,
+            consonant_phoneme_list=consonant_phoneme_list,
             start_accent_list=start_accent_list,
             end_accent_list=end_accent_list,
             start_accent_phrase_list=start_accent_phrase_list,
