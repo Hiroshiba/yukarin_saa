@@ -1,5 +1,4 @@
 import warnings
-from copy import copy
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict
@@ -10,14 +9,12 @@ from pytorch_trainer.iterators import MultiprocessIterator
 from pytorch_trainer.training import Trainer, extensions
 from pytorch_trainer.training.updaters import StandardUpdater
 from tensorboardX import SummaryWriter
-from torch import optim
-from torch.optim.optimizer import Optimizer
 
 from yukarin_sa.config import Config
 from yukarin_sa.dataset import create_dataset
 from yukarin_sa.model import Model
 from yukarin_sa.network.predictor import create_predictor
-from yukarin_sa.utility.pytorch_utility import init_weights
+from yukarin_sa.utility.pytorch_utility import AmpUpdater, init_weights, make_optimizer
 from yukarin_sa.utility.trainer_extension import TensorboardReport, WandbReport
 from yukarin_sa.utility.trainer_utility import LowValueTrigger, create_iterator
 
@@ -58,24 +55,23 @@ def create_trainer(
     warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 
     # optimizer
-    cp: Dict[str, Any] = copy(config.train.optimizer)
-    n = cp.pop("name").lower()
-
-    optimizer: Optimizer
-    if n == "adam":
-        optimizer = optim.Adam(model.parameters(), **cp)
-    elif n == "sgd":
-        optimizer = optim.SGD(model.parameters(), **cp)
-    else:
-        raise ValueError(n)
+    optimizer = make_optimizer(config_dict=config.train.optimizer, model=model)
 
     # updater
-    updater = StandardUpdater(
-        iterator=train_iter,
-        optimizer=optimizer,
-        model=model,
-        device=device,
-    )
+    if not config.train.use_amp:
+        updater = StandardUpdater(
+            iterator=train_iter,
+            optimizer=optimizer,
+            model=model,
+            device=device,
+        )
+    else:
+        updater = AmpUpdater(
+            iterator=train_iter,
+            optimizer=optimizer,
+            model=model,
+            device=device,
+        )
 
     # trainer
     trigger_log = (config.train.log_iteration, "iteration")

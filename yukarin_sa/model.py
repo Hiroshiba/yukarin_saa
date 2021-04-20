@@ -15,7 +15,7 @@ class Model(nn.Module):
         self.model_config = model_config
         self.predictor = predictor
 
-    def __call__(
+    def forward(
         self,
         phoneme_list: Tensor,
         phoneme_length: Tensor,
