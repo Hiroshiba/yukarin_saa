@@ -7,6 +7,10 @@ dataset:
   f0_glob: "/path/to/f0/*.npy"
   sampling_length: 20
   f0_process_mode: phoneme
+  phoneme_mask_max_length: 0
+  phoneme_mask_num: 0
+  accent_mask_max_length: 0
+  accent_mask_num: 0
   speaker_dict_path: "/path/to/speaker_dict.json"
   speaker_size: 100
   test_num: 10
@@ -16,14 +20,10 @@ dataset:
 network:
   phoneme_size: 39
   phoneme_embedding_size: 8
-  phoneme_encoder_type: "uni_skip_dil_cnn"
-  phoneme_encoder_hidden_size: 8
-  phoneme_encoder_kernel_size: 3
-  phoneme_encoder_layer_num: 2
-  accent_encoder_type: "uni_skip_dil_cnn"
-  accent_encoder_hidden_size: 8
-  accent_encoder_kernel_size: 3
-  accent_encoder_layer_num: 4
+  encoder_type: "uni_skip_dil_cnn"
+  encoder_hidden_size: 8
+  encoder_kernel_size: 3
+  encoder_layer_num: 2
   speaker_size: 100
   speaker_embedding_size: 8
 

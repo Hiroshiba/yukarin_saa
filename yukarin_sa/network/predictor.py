@@ -11,14 +11,10 @@ class Predictor(nn.Module):
         self,
         phoneme_size: int,
         phoneme_embedding_size: int,
-        phoneme_encoder_type: EncoderType,
-        phoneme_encoder_hidden_size: int,
-        phoneme_encoder_kernel_size: int,
-        phoneme_encoder_layer_num: int,
-        accent_encoder_type: EncoderType,
-        accent_encoder_hidden_size: int,
-        accent_encoder_kernel_size: int,
-        accent_encoder_layer_num: int,
+        encoder_type: EncoderType,
+        encoder_hidden_size: int,
+        encoder_kernel_size: int,
+        encoder_layer_num: int,
         speaker_size: int,
         speaker_embedding_size: int,
     ):
@@ -38,27 +34,15 @@ class Predictor(nn.Module):
             else None
         )
 
-        self.phoneme_encoder = create_encoder(
-            type=phoneme_encoder_type,
-            input_size=phoneme_embedding_size + speaker_embedding_size,
-            hidden_size=phoneme_encoder_hidden_size,
-            kernel_size=phoneme_encoder_kernel_size,
-            layer_num=phoneme_encoder_layer_num,
+        self.encoder = create_encoder(
+            type=encoder_type,
+            input_size=phoneme_embedding_size + speaker_embedding_size + 4,
+            hidden_size=encoder_hidden_size,
+            kernel_size=encoder_kernel_size,
+            layer_num=encoder_layer_num,
         )
 
-        self.accent_encoder = create_encoder(
-            type=accent_encoder_type,
-            input_size=4 + speaker_embedding_size,
-            hidden_size=accent_encoder_hidden_size,
-            kernel_size=accent_encoder_kernel_size,
-            layer_num=accent_encoder_layer_num,
-        )
-
-        input_size = (
-            self.phoneme_encoder.output_hidden_size
-            + self.accent_encoder.output_hidden_size
-        )
-        self.post = nn.Conv1d(input_size, 2, kernel_size=1)
+        self.post = nn.Conv1d(self.encoder.output_hidden_size, 2, kernel_size=1)
 
     def forward(
         self,
@@ -85,7 +69,9 @@ class Predictor(nn.Module):
             dim=1,
         ).to(
             ph.dtype
-        )  # (batch, ?, length)
+        )  # (batch_size, ?, length)
+
+        h = torch.cat((ph, ah), dim=1)  # (batch_size, ?, length)
 
         if self.speaker_embedder is not None and speaker_id is not None:
             speaker_id = self.speaker_embedder(speaker_id)  # (batch_size, ?)
@@ -93,12 +79,9 @@ class Predictor(nn.Module):
             speaker = speaker_id.expand(
                 speaker_id.shape[0], speaker_id.shape[1], ph.shape[2]
             )  # (batch_size, ?, length)
-            ph = torch.cat((ph, speaker), dim=1)  # (batch_size, ?, length)
-            ah = torch.cat((ah, speaker), dim=1)  # (batch_size, ?, length)
+            h = torch.cat((h, speaker), dim=1)  # (batch_size, ?, length)
 
-        ph = self.phoneme_encoder(ph)  # (batch_size, ?, length)
-        ah = self.accent_encoder(ah)  # (batch_size, ?, length)
-        h = torch.cat((ph, ah), dim=1)  # (batch_size, ?, length)
+        h = self.encoder(h)  # (batch_size, ?, length)
         h = self.post(h)  # (batch_size, ?, length)
 
         phoneme_length = h[:, 0, :]  # (batch_size, length)
@@ -110,14 +93,10 @@ def create_predictor(config: NetworkConfig):
     return Predictor(
         phoneme_size=config.phoneme_size,
         phoneme_embedding_size=config.phoneme_embedding_size,
-        phoneme_encoder_type=EncoderType(config.phoneme_encoder_type),
-        phoneme_encoder_hidden_size=config.phoneme_encoder_hidden_size,
-        phoneme_encoder_kernel_size=config.phoneme_encoder_kernel_size,
-        phoneme_encoder_layer_num=config.phoneme_encoder_layer_num,
-        accent_encoder_type=EncoderType(config.accent_encoder_type),
-        accent_encoder_hidden_size=config.accent_encoder_hidden_size,
-        accent_encoder_kernel_size=config.accent_encoder_kernel_size,
-        accent_encoder_layer_num=config.accent_encoder_layer_num,
+        encoder_type=EncoderType(config.encoder_type),
+        encoder_hidden_size=config.encoder_hidden_size,
+        encoder_kernel_size=config.encoder_kernel_size,
+        encoder_layer_num=config.encoder_layer_num,
         speaker_size=config.speaker_size,
         speaker_embedding_size=config.speaker_embedding_size,
     )

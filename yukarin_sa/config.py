@@ -16,6 +16,10 @@ class DatasetConfig:
     f0_glob: str
     sampling_length: int
     f0_process_mode: str
+    phoneme_mask_max_length: int
+    phoneme_mask_num: int
+    accent_mask_max_length: int
+    accent_mask_num: int
     speaker_dict_path: Optional[Path]
     speaker_size: Optional[int]
     test_num: int
@@ -27,14 +31,10 @@ class DatasetConfig:
 class NetworkConfig:
     phoneme_size: int
     phoneme_embedding_size: int
-    phoneme_encoder_type: str
-    phoneme_encoder_hidden_size: int
-    phoneme_encoder_kernel_size: int
-    phoneme_encoder_layer_num: int
-    accent_encoder_type: str
-    accent_encoder_hidden_size: int
-    accent_encoder_kernel_size: int
-    accent_encoder_layer_num: int
+    encoder_type: str
+    encoder_hidden_size: int
+    encoder_kernel_size: int
+    encoder_layer_num: int
     speaker_size: int
     speaker_embedding_size: int
 
