@@ -67,7 +67,7 @@ class Generator(object):
             speaker_id = speaker_id.reshape((1,)).to(torch.int64).to(self.device)
 
         with torch.no_grad():
-            output_phoneme_length, output_f0 = self.predictor(
+            f0 = self.predictor(
                 phoneme_list=phoneme_list,
                 consonant_phoneme_list=consonant_phoneme_list,
                 start_accent_list=start_accent_list,
@@ -77,6 +77,5 @@ class Generator(object):
                 speaker_id=speaker_id,
             )
 
-        output_phoneme_length = output_phoneme_length[0].cpu().numpy()
-        output_f0 = output_f0[0].cpu().numpy()
-        return output_phoneme_length, output_f0
+        f0 = f0[0].cpu().numpy()
+        return f0

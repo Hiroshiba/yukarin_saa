@@ -14,6 +14,7 @@ class DatasetConfig:
     start_accent_phrase_list_glob: str
     end_accent_phrase_list_glob: str
     f0_glob: str
+    volume_glob: str
     sampling_length: int
     f0_process_mode: str
     phoneme_mask_max_length: int
@@ -41,8 +42,6 @@ class NetworkConfig:
 
 @dataclass
 class ModelConfig:
-    eliminate_pause: bool
-    phoneme_length_loss_weight: float
     f0_loss_weight: float
 
 

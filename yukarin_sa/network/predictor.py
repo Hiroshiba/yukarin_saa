@@ -42,7 +42,7 @@ class Predictor(nn.Module):
             layer_num=encoder_layer_num,
         )
 
-        self.post = nn.Conv1d(self.encoder.output_hidden_size, 2, kernel_size=1)
+        self.post = nn.Conv1d(self.encoder.output_hidden_size, 1, kernel_size=1)
 
     def forward(
         self,
@@ -82,11 +82,10 @@ class Predictor(nn.Module):
             h = torch.cat((h, speaker), dim=1)  # (batch_size, ?, length)
 
         h = self.encoder(h)  # (batch_size, ?, length)
-        h = self.post(h)  # (batch_size, ?, length)
+        h = self.post(h)  # (batch_size, 1, length)
 
-        phoneme_length = h[:, 0, :]  # (batch_size, length)
-        f0 = h[:, 1, :]  # (batch_size, length)
-        return phoneme_length, f0
+        f0 = h[:, 0, :]  # (batch_size, length)
+        return f0
 
 
 def create_predictor(config: NetworkConfig):

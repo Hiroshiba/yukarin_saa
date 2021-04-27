@@ -5,6 +5,7 @@ dataset:
   start_accent_phrase_list_glob: "/path/to/start_accent_phrase_list/*.txt"
   end_accent_phrase_list_glob: "/path/to/end_accent_phrase_list/*.txt"
   f0_glob: "/path/to/f0/*.npy"
+  volume_glob: "/path/to/volume/*.npy"
   sampling_length: 20
   f0_process_mode: phoneme
   phoneme_mask_max_length: 0
@@ -28,8 +29,6 @@ network:
   speaker_embedding_size: 8
 
 model:
-  eliminate_pause: false
-  phoneme_length_loss_weight: 1
   f0_loss_weight: 1
 
 train:
