@@ -26,7 +26,7 @@ class Generator(object):
 
     def generate(
         self,
-        phoneme_list: Union[numpy.ndarray, torch.Tensor],
+        vowel_phoneme_list: Union[numpy.ndarray, torch.Tensor],
         consonant_phoneme_list: Optional[Union[numpy.ndarray, torch.Tensor]],
         start_accent_list: Union[numpy.ndarray, torch.Tensor],
         end_accent_list: Union[numpy.ndarray, torch.Tensor],
@@ -34,9 +34,9 @@ class Generator(object):
         end_accent_phrase_list: Union[numpy.ndarray, torch.Tensor],
         speaker_id: Optional[Union[int, numpy.ndarray, torch.Tensor]],
     ):
-        if isinstance(phoneme_list, numpy.ndarray):
-            phoneme_list = torch.from_numpy(phoneme_list)
-        phoneme_list = phoneme_list.unsqueeze(0).to(self.device)
+        if isinstance(vowel_phoneme_list, numpy.ndarray):
+            vowel_phoneme_list = torch.from_numpy(vowel_phoneme_list)
+        vowel_phoneme_list = vowel_phoneme_list.unsqueeze(0).to(self.device)
 
         if consonant_phoneme_list is not None:
             if isinstance(consonant_phoneme_list, numpy.ndarray):
@@ -68,7 +68,7 @@ class Generator(object):
 
         with torch.no_grad():
             f0 = self.predictor(
-                phoneme_list=phoneme_list,
+                vowel_phoneme_list=vowel_phoneme_list,
                 consonant_phoneme_list=consonant_phoneme_list,
                 start_accent_list=start_accent_list,
                 end_accent_list=end_accent_list,

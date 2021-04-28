@@ -23,7 +23,7 @@ voiced_phoneme_list = (
 
 
 class F0ProcessMode(str, Enum):
-    phoneme = "phoneme"
+    # phoneme = "phoneme"
     # mora_vowel = "mora_vowel"
     mora = "mora"
     voiced_mora = "voiced_mora"
@@ -59,6 +59,25 @@ def split_mora(phoneme_list: List[JvsPhoneme]):
         for prev, post in zip(vowel_indexes[:-1], vowel_indexes[1:])
     ]
     return consonant_phoneme_list, vowel_phoneme_list, vowel_indexes
+
+
+def voiced_consonant_f0_mora(phoneme_list: List[JvsPhoneme], f0: numpy.ndarray):
+    vowel_indexes = [
+        i for i, p in enumerate(phoneme_list) if p.phoneme in mora_phoneme_list
+    ]
+    phoneme_length_list = [p.end - p.start for p in phoneme_list]
+    f0_mora = []
+    for i, d in enumerate(numpy.diff(numpy.r_[0, vowel_indexes])):
+        index = vowel_indexes[i]
+        if d == 1 or phoneme_list[index - 1].phoneme not in voiced_phoneme_list:
+            f0_mora.append(f0[index])
+        else:
+            a = f0[index - 1] * phoneme_length_list[index - 1]
+            b = f0[index] * phoneme_length_list[index]
+            f0_mora.append(
+                (a + b) / (phoneme_length_list[index] + phoneme_length_list[index - 1])
+            )
+    return numpy.array(f0_mora)
 
 
 @dataclass
@@ -147,17 +166,6 @@ class FeatureDataset(Dataset):
         accent_mask_max_length: int,
         accent_mask_num: int,
     ):
-        (
-            consonant_phoneme_list_data,
-            vowel_phoneme_list_data,
-            vowel_indexes,
-        ) = split_mora(phoneme_list_data)
-
-        start_accent_list = start_accent_list[vowel_indexes]
-        end_accent_list = end_accent_list[vowel_indexes]
-        start_accent_phrase_list = start_accent_phrase_list[vowel_indexes]
-        end_accent_phrase_list = end_accent_phrase_list[vowel_indexes]
-
         rate = f0_data.rate
         f0_array = f0_data.array
 
@@ -177,49 +185,35 @@ class FeatureDataset(Dataset):
             weight=volume_array,
         )
 
-        if f0_process_mode == F0ProcessMode.phoneme:
-            consonant_phoneme_list_data = None
-        elif f0_process_mode == F0ProcessMode.mora:
+        (
+            consonant_phoneme_list_data,
+            vowel_phoneme_list_data,
+            vowel_indexes,
+        ) = split_mora(phoneme_list_data)
+
+        if f0_process_mode == F0ProcessMode.mora:
             f0 = f0[vowel_indexes]
-            phoneme_list_data = vowel_phoneme_list_data
         elif f0_process_mode == F0ProcessMode.voiced_mora:
-            phoneme_length_list = [p.end - p.start for p in phoneme_list_data]
-            new_f0 = []
-            for i, d in enumerate(numpy.diff(numpy.r_[0, vowel_indexes])):
-                index = vowel_indexes[i]
-                if (
-                    d == 1
-                    or phoneme_list_data[index - 1].phoneme not in voiced_phoneme_list
-                ):
-                    new_f0.append(f0[index])
-                else:
-                    a = f0[index - 1] * phoneme_length_list[index - 1]
-                    b = f0[index] * phoneme_length_list[index]
-                    new_f0.append(
-                        (a + b)
-                        / (phoneme_length_list[index] + phoneme_length_list[index - 1])
-                    )
-            f0 = numpy.array(new_f0)
-            phoneme_list_data = vowel_phoneme_list_data
+            f0 = voiced_consonant_f0_mora(phoneme_list=phoneme_list_data, f0=f0)
 
-        consonant_phoneme_list: Optional[numpy.ndarray] = None
-        if consonant_phoneme_list_data is not None:
-            consonant_phoneme_list = numpy.array(
-                [
-                    p.phoneme_id if p is not None else -1
-                    for p in consonant_phoneme_list_data
-                ]
-            )
-
-        phoneme_list = numpy.array([p.phoneme_id for p in phoneme_list_data])
-
-        # voiced / unvoiced
         voiced = numpy.array(
-            [p.phoneme in voiced_phoneme_list for p in phoneme_list_data]
+            [p.phoneme in voiced_phoneme_list for p in vowel_phoneme_list_data]
         )
         f0[~voiced] = 0
 
-        length = len(phoneme_list_data)
+        vowel_phoneme_list = numpy.array(
+            [p.phoneme_id for p in vowel_phoneme_list_data]
+        )
+        consonant_phoneme_list = numpy.array(
+            [p.phoneme_id if p is not None else -1 for p in consonant_phoneme_list_data]
+        )
+
+        start_accent_list = start_accent_list[vowel_indexes]
+        end_accent_list = end_accent_list[vowel_indexes]
+        start_accent_phrase_list = start_accent_phrase_list[vowel_indexes]
+        end_accent_phrase_list = end_accent_phrase_list[vowel_indexes]
+
+        length = len(vowel_phoneme_list_data)
 
         if sampling_length > length:
             padding_length = sampling_length - length
@@ -227,25 +221,27 @@ class FeatureDataset(Dataset):
         else:
             padding_length = 0
 
-        offset = numpy.random.randint(len(phoneme_list_data) - sampling_length + 1)
+        offset = numpy.random.randint(
+            len(vowel_phoneme_list_data) - sampling_length + 1
+        )
         offset_slice = slice(offset, offset + sampling_length)
-        phoneme_list = phoneme_list[offset_slice]
+        vowel_phoneme_list = vowel_phoneme_list[offset_slice]
+        consonant_phoneme_list = consonant_phoneme_list[offset_slice]
         start_accent_list = start_accent_list[offset_slice]
         end_accent_list = end_accent_list[offset_slice]
         start_accent_phrase_list = start_accent_phrase_list[offset_slice]
         end_accent_phrase_list = end_accent_phrase_list[offset_slice]
         f0 = f0[offset_slice]
         voiced = voiced[offset_slice]
-        padded = numpy.zeros_like(phoneme_list, dtype=bool)
-        if consonant_phoneme_list is not None:
-            consonant_phoneme_list = consonant_phoneme_list[offset_slice]
+        padded = numpy.zeros_like(vowel_phoneme_list, dtype=bool)
 
         pad_pre, pad_post = 0, 0
         if padding_length > 0:
             pad_pre = numpy.random.randint(padding_length + 1)
             pad_post = padding_length - pad_pre
             pad_list = [pad_pre, pad_post]
-            phoneme_list = numpy.pad(phoneme_list, pad_list)
+            vowel_phoneme_list = numpy.pad(vowel_phoneme_list, pad_list)
+            consonant_phoneme_list = numpy.pad(consonant_phoneme_list, pad_list)
             start_accent_list = numpy.pad(start_accent_list, pad_list)
             end_accent_list = numpy.pad(end_accent_list, pad_list)
             start_accent_phrase_list = numpy.pad(start_accent_phrase_list, pad_list)
@@ -253,16 +249,15 @@ class FeatureDataset(Dataset):
             f0 = numpy.pad(f0, pad_list)
             voiced = numpy.pad(voiced, pad_list)
             padded = numpy.pad(padded, pad_list, constant_values=True)
-            if consonant_phoneme_list is not None:
-                consonant_phoneme_list = numpy.pad(consonant_phoneme_list, pad_list)
 
         if phoneme_mask_max_length > 0 and phoneme_mask_num > 0:
             for _ in range(phoneme_mask_num):
                 mask_length = numpy.random.randint(phoneme_mask_max_length)
-                mask_offset = numpy.random.randint(len(phoneme_list) - mask_length + 1)
-                phoneme_list[mask_offset : mask_offset + mask_length] = -1
-                if consonant_phoneme_list is not None:
-                    consonant_phoneme_list[mask_offset : mask_offset + mask_length] = -1
+                mask_offset = numpy.random.randint(
+                    len(vowel_phoneme_list) - mask_length + 1
+                )
+                vowel_phoneme_list[mask_offset : mask_offset + mask_length] = -1
+                consonant_phoneme_list[mask_offset : mask_offset + mask_length] = -1
 
         if accent_mask_max_length > 0 and accent_mask_num > 0:
             for _ in range(accent_mask_num):
@@ -275,8 +270,9 @@ class FeatureDataset(Dataset):
                 start_accent_phrase_list[mask_offset : mask_offset + mask_length] = 0
                 end_accent_phrase_list[mask_offset : mask_offset + mask_length] = 0
 
-        data = dict(
-            phoneme_list=phoneme_list.astype(numpy.int64),
+        return dict(
+            vowel_phoneme_list=vowel_phoneme_list.astype(numpy.int64),
+            consonant_phoneme_list=consonant_phoneme_list.astype(numpy.int64),
             start_accent_list=start_accent_list.astype(numpy.int64),
             end_accent_list=end_accent_list.astype(numpy.int64),
             start_accent_phrase_list=start_accent_phrase_list.astype(numpy.int64),
@@ -285,9 +281,6 @@ class FeatureDataset(Dataset):
             voiced=voiced,
             padded=padded,
         )
-        if consonant_phoneme_list is not None:
-            data["consonant_phoneme_list"] = consonant_phoneme_list.astype(numpy.int64)
-        return data
 
     def __len__(self):
         return len(self.inputs)

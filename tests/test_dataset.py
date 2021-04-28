@@ -3,7 +3,7 @@ from typing import List, Optional
 import numpy
 import pytest
 from acoustic_feature_extractor.data.phoneme import JvsPhoneme
-from yukarin_sa.dataset import f0_mean, split_mora
+from yukarin_sa.dataset import f0_mean, split_mora, voiced_consonant_f0_mora
 
 
 @pytest.mark.parametrize(
@@ -98,3 +98,27 @@ def test_split_mora(
     assert output_consonant_phoneme_list == consonant_phoneme_list
     assert output_vowel_phoneme_list == vowel_phoneme_list
     assert output_vowel_indexes == vowel_indexes
+
+
+@pytest.mark.parametrize(
+    "phoneme_list,f0,f0_mora",
+    [
+        (
+            [
+                JvsPhoneme("pau", 0, 1),
+                JvsPhoneme("r", 1, 2),
+                JvsPhoneme("a", 2, 3),
+                JvsPhoneme("k", 3, 4),
+                JvsPhoneme("i", 4, 5),
+                JvsPhoneme("pau", 5, 6),
+            ],
+            numpy.array([0, 1, 2, 3, 4, 0]),
+            numpy.array([0, 1.5, 4, 0]),
+        ),
+    ],
+)
+def test_voiced_consonant_f0_mora(
+    phoneme_list: List[JvsPhoneme], f0: numpy.ndarray, f0_mora: numpy.ndarray
+):
+    output = voiced_consonant_f0_mora(phoneme_list=phoneme_list, f0=f0)
+    numpy.testing.assert_array_equal(output, f0_mora)

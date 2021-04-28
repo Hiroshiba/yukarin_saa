@@ -17,7 +17,8 @@ class Model(nn.Module):
 
     def forward(
         self,
-        phoneme_list: Tensor,
+        vowel_phoneme_list: Tensor,
+        consonant_phoneme_list: Tensor,
         start_accent_list: Tensor,
         end_accent_list: Tensor,
         start_accent_phrase_list: Tensor,
@@ -25,13 +26,12 @@ class Model(nn.Module):
         f0: Tensor,
         voiced: Tensor,
         padded: Tensor,
-        consonant_phoneme_list: Optional[Tensor] = None,
         speaker_id: Optional[Tensor] = None,
     ):
-        batch_size = len(phoneme_list)
+        batch_size = len(vowel_phoneme_list)
 
         output_f0 = self.predictor(
-            phoneme_list=phoneme_list,
+            vowel_phoneme_list=vowel_phoneme_list,
             consonant_phoneme_list=consonant_phoneme_list,
             start_accent_list=start_accent_list,
             end_accent_list=end_accent_list,
