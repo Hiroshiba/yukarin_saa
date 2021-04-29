@@ -12,6 +12,8 @@ from tensorboardX import SummaryWriter
 
 from yukarin_sa.config import Config
 from yukarin_sa.dataset import create_dataset
+from yukarin_sa.evaluator import GenerateEvaluator
+from yukarin_sa.generator import Generator
 from yukarin_sa.model import Model
 from yukarin_sa.network.predictor import create_predictor
 from yukarin_sa.utility.pytorch_utility import AmpUpdater, init_weights, make_optimizer
@@ -51,6 +53,7 @@ def create_trainer(
     datasets = create_dataset(config.dataset)
     train_iter = _create_iterator(datasets["train"], for_train=True)
     test_iter = _create_iterator(datasets["test"], for_train=False)
+    eval_iter = _create_iterator(datasets["test"], for_train=False, for_eval=True)
 
     warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 
@@ -83,10 +86,14 @@ def create_trainer(
     )
 
     trainer = Trainer(updater, stop_trigger=trigger_stop, out=output)
-    writer = SummaryWriter(Path(output))
 
     ext = extensions.Evaluator(test_iter, model, device=device)
     trainer.extend(ext, name="test", trigger=trigger_log)
+
+    generator = Generator(config=config, predictor=predictor, use_gpu=True)
+    generate_evaluator = GenerateEvaluator(generator=generator)
+    ext = extensions.Evaluator(eval_iter, generate_evaluator, device=device)
+    trainer.extend(ext, name="eval", trigger=trigger_eval)
 
     if config.train.stop_iteration is not None:
         saving_model_num = int(
@@ -112,7 +119,7 @@ def create_trainer(
         trigger=trigger_log,
     )
 
-    ext = TensorboardReport(writer=writer)
+    ext = TensorboardReport(writer=SummaryWriter(Path(output)))
     trainer.extend(ext, trigger=trigger_log)
 
     if config.project.category is not None:

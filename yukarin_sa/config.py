@@ -36,6 +36,10 @@ class NetworkConfig:
     encoder_hidden_size: int
     encoder_kernel_size: int
     encoder_layer_num: int
+    ar_encoder_type: Optional[str]
+    ar_encoder_hidden_size: int
+    ar_encoder_kernel_size: int
+    ar_encoder_layer_num: int
     speaker_size: int
     speaker_embedding_size: int
 

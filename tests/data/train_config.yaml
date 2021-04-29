@@ -25,6 +25,10 @@ network:
   encoder_hidden_size: 8
   encoder_kernel_size: 3
   encoder_layer_num: 2
+  ar_encoder_type: None
+  ar_encoder_hidden_size: 0
+  ar_encoder_kernel_size: 0
+  ar_encoder_layer_num: 0
   speaker_size: 100
   speaker_embedding_size: 8
 

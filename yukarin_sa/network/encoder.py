@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -11,6 +11,7 @@ class EncoderType(str, Enum):
     residual_bottleneck_cnn = "res_bot_cnn"
     uniform_skip_dilated_cnn = "uni_skip_dil_cnn"
     gru = "gru"
+    uni_gru = "uni_gru"
 
 
 class BaseEncoder(nn.Module):
@@ -224,6 +225,37 @@ class GRU(BaseEncoder):
         return h.transpose(1, 2)
 
 
+class UniGRU(BaseEncoder):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        layer_num: int,
+    ):
+        super().__init__()
+        self.output_hidden_size = hidden_size
+
+        self.rnn = nn.GRU(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=layer_num,
+            batch_first=True,
+            bidirectional=False,
+        )
+
+    def forward(
+        self, x: Tensor, hidden: Optional[Tensor] = None, return_hidden: bool = False
+    ):
+        """
+        :param x: float (batch_size, ?, length)
+        """
+        output, hidden = self.rnn(x.transpose(1, 2), hidden)
+        if not return_hidden:
+            return output.transpose(1, 2)
+        else:
+            return output.transpose(1, 2), hidden
+
+
 def create_encoder(
     type: EncoderType,
     input_size: int,
@@ -238,7 +270,7 @@ def create_encoder(
         kernel_size=kernel_size,
     )
 
-    if type == EncoderType.gru:
+    if type == EncoderType.gru or type == EncoderType.uni_gru:
         assert kernel_size == 0
         kwargs.pop("kernel_size")
 
@@ -248,4 +280,5 @@ def create_encoder(
         EncoderType.residual_bottleneck_cnn: ResidualBottleneckCNN,
         EncoderType.uniform_skip_dilated_cnn: UniformSkipDilatedCNN,
         EncoderType.gru: GRU,
+        EncoderType.uni_gru: UniGRU,
     }[type](**kwargs)

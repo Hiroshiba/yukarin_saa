@@ -37,6 +37,7 @@ class Model(nn.Module):
             end_accent_list=end_accent_list,
             start_accent_phrase_list=start_accent_phrase_list,
             end_accent_phrase_list=end_accent_phrase_list,
+            f0=f0.roll(1, dims=1),
             speaker_id=speaker_id,
         )
 
