@@ -58,6 +58,7 @@ class TrainConfig:
     optimizer: Dict[str, Any]
     weight_initializer: Optional[str] = None
     num_processes: Optional[int] = None
+    use_gpu: bool = True
     use_amp: bool = False
     use_multithread: bool = False
 

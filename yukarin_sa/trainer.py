@@ -39,7 +39,7 @@ def create_trainer(
     if config.train.weight_initializer is not None:
         init_weights(model, name=config.train.weight_initializer)
 
-    device = torch.device("cuda")
+    device = torch.device("cuda") if config.train.use_gpu else torch.device("cpu")
     model.to(device)
 
     # dataset
@@ -90,7 +90,9 @@ def create_trainer(
     ext = extensions.Evaluator(test_iter, model, device=device)
     trainer.extend(ext, name="test", trigger=trigger_log)
 
-    generator = Generator(config=config, predictor=predictor, use_gpu=True)
+    generator = Generator(
+        config=config, predictor=predictor, use_gpu=config.train.use_gpu
+    )
     generate_evaluator = GenerateEvaluator(generator=generator)
     ext = extensions.Evaluator(eval_iter, generate_evaluator, device=device)
     trainer.extend(ext, name="eval", trigger=trigger_eval)
