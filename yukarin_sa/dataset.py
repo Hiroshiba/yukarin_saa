@@ -489,7 +489,6 @@ def create_validation_dataset(config: DatasetConfig):
         fn_each_speaker: Dict[str, List[str]] = json.loads(
             config.valid_speaker_dict_path.read_text()
         )
-        assert config.speaker_size == len(fn_each_speaker)
 
         speaker_ids = {
             fn: speaker_id
