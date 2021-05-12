@@ -141,6 +141,8 @@ class FeatureDataset(Dataset):
         phoneme_mask_num: int,
         accent_mask_max_length: int,
         accent_mask_num: int,
+        f0_mask_max_length: int,
+        f0_mask_num: int,
     ):
         self.inputs = inputs
         self.sampling_length = sampling_length
@@ -149,6 +151,8 @@ class FeatureDataset(Dataset):
         self.phoneme_mask_num = phoneme_mask_num
         self.accent_mask_max_length = accent_mask_max_length
         self.accent_mask_num = accent_mask_num
+        self.f0_mask_max_length = f0_mask_max_length
+        self.f0_mask_num = f0_mask_num
 
     @staticmethod
     def extract_input(
@@ -165,6 +169,8 @@ class FeatureDataset(Dataset):
         phoneme_mask_num: int,
         accent_mask_max_length: int,
         accent_mask_num: int,
+        f0_mask_max_length: int,
+        f0_mask_num: int,
     ):
         rate = f0_data.rate
         f0_array = f0_data.array
@@ -270,6 +276,12 @@ class FeatureDataset(Dataset):
                 start_accent_phrase_list[mask_offset : mask_offset + mask_length] = 0
                 end_accent_phrase_list[mask_offset : mask_offset + mask_length] = 0
 
+        if f0_mask_max_length > 0 and f0_mask_num > 0:
+            for _ in range(f0_mask_num):
+                mask_length = numpy.random.randint(f0_mask_max_length)
+                mask_offset = numpy.random.randint(len(f0) - mask_length + 1)
+                f0[mask_offset : mask_offset + mask_length] = 0
+
         return dict(
             vowel_phoneme_list=vowel_phoneme_list.astype(numpy.int64),
             consonant_phoneme_list=consonant_phoneme_list.astype(numpy.int64),
@@ -304,6 +316,8 @@ class FeatureDataset(Dataset):
             phoneme_mask_num=self.phoneme_mask_num,
             accent_mask_max_length=self.accent_mask_max_length,
             accent_mask_num=self.accent_mask_num,
+            f0_mask_max_length=self.f0_mask_max_length,
+f0_mask_num=self.f0_mask_num,
         )
 
 
@@ -407,6 +421,8 @@ def create_dataset(config: DatasetConfig):
                 phoneme_mask_num=config.phoneme_mask_num,
                 accent_mask_max_length=config.accent_mask_max_length,
                 accent_mask_num=config.accent_mask_num,
+                f0_mask_max_length=config.f0_mask_max_length,
+                f0_mask_num=config.f0_mask_num,
             )
         else:
             dataset = FeatureDataset(
@@ -417,6 +433,8 @@ def create_dataset(config: DatasetConfig):
                 phoneme_mask_num=0,
                 accent_mask_max_length=0,
                 accent_mask_num=0,
+                f0_mask_max_length=0,
+                f0_mask_num=0,
             )
 
         if speaker_ids is not None:
@@ -522,6 +540,8 @@ def create_validation_dataset(config: DatasetConfig):
         phoneme_mask_num=0,
         accent_mask_max_length=0,
         accent_mask_num=0,
+        f0_mask_max_length=0,
+        f0_mask_num=0,
     )
 
     if speaker_ids is not None:

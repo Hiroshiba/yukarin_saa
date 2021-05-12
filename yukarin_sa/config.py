@@ -21,6 +21,8 @@ class DatasetConfig:
     phoneme_mask_num: int
     accent_mask_max_length: int
     accent_mask_num: int
+    f0_mask_max_length: int
+    f0_mask_num: int
     speaker_dict_path: Optional[Path]
     speaker_size: Optional[int]
     test_num: int
@@ -104,3 +106,8 @@ class Config:
 def backward_compatible(d: Dict[str, Any]):
     if "f0_process_mode" not in d["dataset"]:
         d["dataset"]["f0_process_mode"] = "phoneme"
+
+    if "f0_mask_max_length" not in d["dataset"]:
+        d["dataset"]["f0_mask_max_length"] = 0
+    if "f0_mask_num" not in d["dataset"]:
+        d["dataset"]["f0_mask_num"] = 0
