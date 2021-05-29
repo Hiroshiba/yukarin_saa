@@ -69,6 +69,7 @@ class TrainConfig:
     stop_iteration: int
     optimizer: Dict[str, Any]
     weight_initializer: Optional[str] = None
+    step_shift: Optional[Dict[str, Any]] = None
     num_processes: Optional[int] = None
     use_gpu: bool = True
     use_amp: bool = False
