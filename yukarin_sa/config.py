@@ -17,6 +17,7 @@ class DatasetConfig:
     volume_glob: str
     sampling_length: int
     f0_process_mode: str
+    phoneme_type: str
     phoneme_mask_max_length: int
     phoneme_mask_num: int
     accent_mask_max_length: int
@@ -112,3 +113,6 @@ def backward_compatible(d: Dict[str, Any]):
         d["dataset"]["f0_mask_max_length"] = 0
     if "f0_mask_num" not in d["dataset"]:
         d["dataset"]["f0_mask_num"] = 0
+
+    if "phoneme_type" not in d["dataset"]:
+        d["dataset"]["phoneme_type"] = "jvs"
