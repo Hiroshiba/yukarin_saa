@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime
+FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
 SHELL ["/bin/bash", "-c"]
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -20,5 +20,5 @@ RUN apt-get update && \
     pip install optuna mysqlclient
 
 # install requirements
-COPY requirements.txt /app/
+COPY requirements*.txt /app/
 RUN pip install -r <(cat requirements.txt | grep -x -v torch) -r requirements_dev.txt

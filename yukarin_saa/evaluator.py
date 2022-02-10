@@ -5,7 +5,7 @@ import torch
 from pytorch_trainer import report
 from torch import Tensor, nn
 
-from yukarin_sa.generator import Generator
+from yukarin_saa.generator import Generator
 
 
 class GenerateEvaluator(nn.Module):

@@ -4,11 +4,11 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from yukarin_sa.config import Config
-from yukarin_sa.dataset import create_dataset
-from yukarin_sa.generator import Generator
 from tqdm import tqdm
 from utility.save_arguments import save_arguments
+from yukarin_saa.config import Config
+from yukarin_saa.dataset import create_dataset
+from yukarin_saa.generator import Generator
 
 
 def _extract_number(f):

@@ -3,7 +3,7 @@ from typing import List, Optional
 import numpy
 import pytest
 from acoustic_feature_extractor.data.phoneme import JvsPhoneme
-from yukarin_sa.dataset import f0_mean, split_mora, voiced_consonant_f0_mora
+from yukarin_saa.dataset import f0_mean, split_mora, voiced_consonant_f0_mora
 
 
 @pytest.mark.parametrize(

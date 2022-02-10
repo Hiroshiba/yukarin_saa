@@ -10,15 +10,23 @@ from pytorch_trainer.training import Trainer, extensions
 from pytorch_trainer.training.updaters import StandardUpdater
 from tensorboardX import SummaryWriter
 
-from yukarin_sa.config import Config
-from yukarin_sa.dataset import create_dataset
-from yukarin_sa.evaluator import GenerateEvaluator
-from yukarin_sa.generator import Generator
-from yukarin_sa.model import Model
-from yukarin_sa.network.predictor import create_predictor
-from yukarin_sa.utility.pytorch_utility import AmpUpdater, init_weights, make_optimizer
-from yukarin_sa.utility.trainer_extension import TensorboardReport, WandbReport
-from yukarin_sa.utility.trainer_utility import LowValueTrigger, create_iterator
+from yukarin_saa.config import Config
+from yukarin_saa.dataset import create_dataset
+from yukarin_saa.evaluator import GenerateEvaluator
+from yukarin_saa.generator import Generator
+from yukarin_saa.model import Model
+from yukarin_saa.network.predictor import create_predictor
+from yukarin_saa.utility.pytorch_utility import AmpUpdater, init_weights, make_optimizer
+from yukarin_saa.utility.trainer_extension import (
+    NoamShift,
+    TensorboardReport,
+    WandbReport,
+)
+from yukarin_saa.utility.trainer_utility import (
+    LowValueTrigger,
+    create_iterator,
+    list_concat,
+)
 
 
 def create_trainer(
@@ -70,6 +78,7 @@ def create_trainer(
             iterator=train_iter,
             optimizer=optimizer,
             model=model,
+            converter=list_concat,
             device=device,
         )
     else:
@@ -77,12 +86,14 @@ def create_trainer(
             iterator=train_iter,
             optimizer=optimizer,
             model=model,
+            converter=list_concat,
             device=device,
         )
 
     # trainer
     trigger_log = (config.train.log_iteration, "iteration")
-    trigger_eval = (config.train.snapshot_iteration, "iteration")
+    trigger_eval = (config.train.eval_iteration, "iteration")
+    trigger_snapshot = (config.train.snapshot_iteration, "iteration")
     trigger_stop = (
         (config.train.stop_iteration, "iteration")
         if config.train.stop_iteration is not None
@@ -91,21 +102,35 @@ def create_trainer(
 
     trainer = Trainer(updater, stop_trigger=trigger_stop, out=output)
 
-    if config.train.step_shift is not None:
+    if (
+        config.train.step_shift is not None
+        and config.train.step_shift["step"] is not None
+    ):
         ext = extensions.StepShift(**config.train.step_shift)
         trainer.extend(ext)
 
-    ext = extensions.Evaluator(test_iter, model, device=device)
+    if (
+        config.train.noam_shift is not None
+        and config.train.noam_shift["step"] is not None
+    ):
+        ext = NoamShift(**config.train.noam_shift)
+        trainer.extend(ext)
+
+    ext = extensions.Evaluator(test_iter, model, converter=list_concat, device=device)
     trainer.extend(ext, name="test", trigger=trigger_log)
 
     generator = Generator(
         config=config, predictor=predictor, use_gpu=config.train.use_gpu
     )
     generate_evaluator = GenerateEvaluator(generator=generator)
-    ext = extensions.Evaluator(eval_iter, generate_evaluator, device=device)
+    ext = extensions.Evaluator(
+        eval_iter, generate_evaluator, converter=list_concat, device=device
+    )
     trainer.extend(ext, name="eval", trigger=trigger_eval)
     if valid_iter is not None:
-        ext = extensions.Evaluator(valid_iter, generate_evaluator, device=device)
+        ext = extensions.Evaluator(
+            valid_iter, generate_evaluator, converter=list_concat, device=device
+        )
         trainer.extend(ext, name="valid", trigger=trigger_eval)
 
     if config.train.stop_iteration is not None:
@@ -155,6 +180,6 @@ def create_trainer(
         n_retains=1,
         autoload=True,
     )
-    trainer.extend(ext, trigger=trigger_eval)
+    trainer.extend(ext, trigger=trigger_snapshot)
 
     return trainer

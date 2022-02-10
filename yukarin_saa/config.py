@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from yukarin_sa.utility import dataclass_utility
-from yukarin_sa.utility.git_utility import get_branch_name, get_commit_id
+from yukarin_saa.utility import dataclass_utility
+from yukarin_saa.utility.git_utility import get_branch_name, get_commit_id
 
 
 @dataclass
@@ -15,15 +15,12 @@ class DatasetConfig:
     end_accent_phrase_list_glob: str
     f0_glob: str
     volume_glob: str
-    sampling_length: int
     f0_process_mode: str
     phoneme_type: str
     phoneme_mask_max_length: int
     phoneme_mask_num: int
     accent_mask_max_length: int
     accent_mask_num: int
-    f0_mask_max_length: int
-    f0_mask_num: int
     speaker_dict_path: Optional[Path]
     speaker_size: Optional[int]
     test_num: int
@@ -45,32 +42,29 @@ class DatasetConfig:
 class NetworkConfig:
     phoneme_size: int
     phoneme_embedding_size: int
-    encoder_type: str
-    encoder_hidden_size: int
-    encoder_kernel_size: int
-    encoder_layer_num: int
-    ar_encoder_type: Optional[str]
-    ar_encoder_hidden_size: int
-    ar_encoder_kernel_size: int
-    ar_encoder_layer_num: int
     speaker_size: int
     speaker_embedding_size: int
+    hidden_size: int
+    block_num: int
+    post_layer_num: int
 
 
 @dataclass
 class ModelConfig:
-    f0_loss_weight: float
+    pass
 
 
 @dataclass
 class TrainConfig:
     batch_size: int
     log_iteration: int
+    eval_iteration: int
     snapshot_iteration: int
     stop_iteration: int
     optimizer: Dict[str, Any]
     weight_initializer: Optional[str] = None
     step_shift: Optional[Dict[str, Any]] = None
+    noam_shift: Optional[Dict[str, Any]] = None
     num_processes: Optional[int] = None
     use_gpu: bool = True
     use_amp: bool = False
@@ -106,13 +100,4 @@ class Config:
 
 
 def backward_compatible(d: Dict[str, Any]):
-    if "f0_process_mode" not in d["dataset"]:
-        d["dataset"]["f0_process_mode"] = "phoneme"
-
-    if "f0_mask_max_length" not in d["dataset"]:
-        d["dataset"]["f0_mask_max_length"] = 0
-    if "f0_mask_num" not in d["dataset"]:
-        d["dataset"]["f0_mask_num"] = 0
-
-    if "phoneme_type" not in d["dataset"]:
-        d["dataset"]["phoneme_type"] = "jvs"
+    pass
