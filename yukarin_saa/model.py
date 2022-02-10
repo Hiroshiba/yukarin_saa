@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+import numpy
 import torch
 import torch.nn.functional as F
 from pytorch_trainer import report
@@ -27,8 +28,6 @@ class Model(nn.Module):
         voiced: List[Tensor],
         speaker_id: Optional[List[Tensor]] = None,
     ):
-        batch_size = len(vowel_phoneme)
-
         output1, output2 = self.predictor(
             vowel_phoneme_list=vowel_phoneme,
             consonant_phoneme_list=consonant_phoneme,
@@ -36,7 +35,7 @@ class Model(nn.Module):
             end_accent_list=end_accent,
             start_accent_phrase_list=start_accent_phrase,
             end_accent_phrase_list=end_accent_phrase,
-            speaker_id=speaker_id,
+            speaker_id=torch.stack(speaker_id) if speaker_id is not None else None,
         )
 
         mask = torch.cat(voiced)
@@ -47,7 +46,8 @@ class Model(nn.Module):
         # report
         losses = dict(loss=loss, loss1=loss1, loss2=loss2)
         if not self.training:
-            losses = {key: (l, batch_size) for key, l in losses.items()}
+            weight = mask.sum()
+            losses = {key: (l, weight) for key, l in losses.items()}
         report(losses, self)
 
         return loss

@@ -37,7 +37,11 @@ class Predictor(nn.Module):
             else None
         )
 
-        input_size = phoneme_embedding_size + speaker_embedding_size
+        input_size = (
+            phoneme_embedding_size
+            + 4
+            + (speaker_embedding_size if self.speaker_embedder else 0)
+        )
         self.pre = torch.nn.Linear(input_size, hidden_size)
 
         self.encoder = Encoder(
@@ -128,8 +132,8 @@ class Predictor(nn.Module):
         output1 = self.post(h)
         output2 = output1 + self.postnet(output1.transpose(1, 2)).transpose(1, 2)
         return (
-            [output1[i, :l] for i, l in enumerate(length_list)],
-            [output2[i, :l] for i, l in enumerate(length_list)],
+            [output1[i, :l, 0] for i, l in enumerate(length_list)],
+            [output2[i, :l, 0] for i, l in enumerate(length_list)],
         )
 
     def inference(

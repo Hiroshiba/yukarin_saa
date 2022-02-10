@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 import numpy
 import torch
@@ -18,36 +18,33 @@ class GenerateEvaluator(nn.Module):
 
     def __call__(
         self,
-        vowel_phoneme_list: Tensor,
-        consonant_phoneme_list: Tensor,
-        start_accent_list: Tensor,
-        end_accent_list: Tensor,
-        start_accent_phrase_list: Tensor,
-        end_accent_phrase_list: Tensor,
-        f0: Tensor,
-        voiced: Tensor,
-        padded: Tensor,
-        speaker_id: Optional[Tensor] = None,
+        vowel_phoneme: List[Tensor],
+        consonant_phoneme: List[Tensor],
+        start_accent: List[Tensor],
+        end_accent: List[Tensor],
+        start_accent_phrase: List[Tensor],
+        end_accent_phrase: List[Tensor],
+        f0: List[Tensor],
+        voiced: List[Tensor],
+        speaker_id: Optional[List[Tensor]] = None,
     ):
-        batch_size = vowel_phoneme_list.shape[0]
-        numpy_mask = torch.logical_and(voiced, ~padded).cpu().numpy()
-
-        out_f0 = self.generator.generate(
-            vowel_phoneme_list=vowel_phoneme_list,
-            consonant_phoneme_list=consonant_phoneme_list,
-            start_accent_list=start_accent_list,
-            end_accent_list=end_accent_list,
-            start_accent_phrase_list=start_accent_phrase_list,
-            end_accent_phrase_list=end_accent_phrase_list,
-            speaker_id=speaker_id,
+        output = self.generator.generate(
+            vowel_phoneme_list=vowel_phoneme,
+            consonant_phoneme_list=consonant_phoneme,
+            start_accent_list=start_accent,
+            end_accent_list=end_accent,
+            start_accent_phrase_list=start_accent_phrase,
+            end_accent_phrase_list=end_accent_phrase,
+            speaker_id=torch.stack(speaker_id) if speaker_id is not None else None,
         )
-        out_f0 = out_f0[numpy_mask]
 
-        in_f0 = f0.cpu().numpy()[numpy_mask]
+        mask = torch.cat(voiced).cpu().numpy()
+        diff = numpy.abs(
+            numpy.concatenate(output)[mask]
+            - numpy.concatenate([t.cpu().numpy() for t in f0])[mask]
+        ).mean()
 
-        diff = numpy.abs(out_f0 - in_f0).mean()
-
-        weight = (numpy_mask).mean() * batch_size
+        weight = mask.sum()
         scores = {"diff": (diff, weight)}
 
         report(scores, self)

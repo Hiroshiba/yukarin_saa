@@ -42,7 +42,7 @@ class Generator(object):
         end_accent_list: List[Union[numpy.ndarray, torch.Tensor]],
         start_accent_phrase_list: List[Union[numpy.ndarray, torch.Tensor]],
         end_accent_phrase_list: List[Union[numpy.ndarray, torch.Tensor]],
-        speaker_id: Optional[Union[int, numpy.ndarray, torch.Tensor]],
+        speaker_id: Optional[Union[numpy.ndarray, torch.Tensor]],
     ):
         vowel_phoneme_list = [to_tensor(t).to(self.device) for t in vowel_phoneme_list]
         consonant_phoneme_list = [
