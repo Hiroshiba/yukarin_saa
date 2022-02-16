@@ -67,15 +67,18 @@ class Predictor(nn.Module):
 
         self.post = torch.nn.Linear(hidden_size, 1)
 
-        self.postnet = Postnet(
-            idim=None,
-            odim=1,
-            n_layers=post_layer_num,
-            n_chans=hidden_size,
-            n_filts=5,
-            use_batch_norm=True,
-            dropout_rate=0.5,
-        )
+        if post_layer_num > 0:
+            self.postnet = Postnet(
+                idim=None,
+                odim=1,
+                n_layers=post_layer_num,
+                n_chans=hidden_size,
+                n_filts=5,
+                use_batch_norm=True,
+                dropout_rate=0.5,
+            )
+        else:
+            self.postnet = None
 
     def _mask(self, length: Tensor):
         x_masks = make_non_pad_mask(length).to(length.device)
@@ -130,7 +133,10 @@ class Predictor(nn.Module):
         h, _ = self.encoder(h, mask)
 
         output1 = self.post(h)
-        output2 = output1 + self.postnet(output1.transpose(1, 2)).transpose(1, 2)
+        if self.postnet is not None:
+            output2 = output1 + self.postnet(output1.transpose(1, 2)).transpose(1, 2)
+        else:
+            output2 = output1
         return (
             [output1[i, :l, 0] for i, l in enumerate(length_list)],
             [output2[i, :l, 0] for i, l in enumerate(length_list)],
