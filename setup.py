@@ -7,7 +7,7 @@ install_requires = [
     for r in Path("requirements.txt").read_text().split()
 ]
 setup(
-    name="yukarin_sa",
+    name="yukarin_saa",
     version="0.0.1",
     packages=find_packages(),
     author="Kazuyuki Hiroshiba",
