@@ -51,7 +51,7 @@ class NetworkConfig:
 
 @dataclass
 class ModelConfig:
-    pass
+    f0_statistics_path: Optional[Path]
 
 
 @dataclass
@@ -100,4 +100,5 @@ class Config:
 
 
 def backward_compatible(d: Dict[str, Any]):
-    pass
+    if "f0_statistics_path" not in d["model"]:
+        d["model"]["f0_statistics_path"] = None

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import numpy
 import torch
@@ -15,6 +15,15 @@ class Model(nn.Module):
         super().__init__()
         self.model_config = model_config
         self.predictor = predictor
+
+        if self.model_config.f0_statistics_path is not None:
+            statistics: Dict[str, Dict[str, float]] = numpy.load(
+                self.model_config.f0_statistics_path, allow_pickle=True
+            ).item()
+            output_correction = numpy.array(
+                [s["mean"] for s in statistics.values()], dtype=numpy.float32
+            )
+            self.predictor.set_output_correction(torch.from_numpy(output_correction))
 
     def forward(
         self,

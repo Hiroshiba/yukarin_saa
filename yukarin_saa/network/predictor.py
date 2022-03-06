@@ -1,4 +1,5 @@
-from typing import List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, OrderedDict
 
 import numpy
 import torch
@@ -80,6 +81,12 @@ class Predictor(nn.Module):
         else:
             self.postnet = None
 
+        self.output_correction: Tensor
+        self.register_buffer("output_correction", torch.zeros(speaker_size))
+
+    def set_output_correction(self, output_correction: Tensor):
+        self.output_correction[:] = output_correction
+
     def _mask(self, length: Tensor):
         x_masks = make_non_pad_mask(length).to(length.device)
         return x_masks.unsqueeze(-2)
@@ -120,12 +127,10 @@ class Predictor(nn.Module):
         h = torch.cat((ph, ah), dim=2)  # (batch_size, length, ?)
 
         if self.speaker_embedder is not None and speaker_id is not None:
-            speaker_id = self.speaker_embedder(speaker_id)  # (batch_size, ?)
-            speaker_id = speaker_id.unsqueeze(1)  # (batch_size, 1, ?)
-            speaker = speaker_id.expand(
-                speaker_id.shape[0], ph.shape[1], speaker_id.shape[2]
-            )  # (batch_size, length, ?)
-            h = torch.cat((h, speaker), dim=2)  # (batch_size, length, ?)
+            s = self.speaker_embedder(speaker_id)  # (batch_size, ?)
+            s = s.unsqueeze(1)  # (batch_size, 1, ?)
+            s = s.expand(s.shape[0], ph.shape[1], s.shape[2])  # (batch_size, length, ?)
+            h = torch.cat((h, s), dim=2)  # (batch_size, length, ?)
 
         h = self.pre(h)
 
@@ -137,6 +142,11 @@ class Predictor(nn.Module):
             output2 = output1 + self.postnet(output1.transpose(1, 2)).transpose(1, 2)
         else:
             output2 = output1
+
+        if speaker_id is not None:
+            output1 = output1 + self.output_correction[speaker_id]
+            output2 = output2 + self.output_correction[speaker_id]
+
         return (
             [output1[i, :l, 0] for i, l in enumerate(length_list)],
             [output2[i, :l, 0] for i, l in enumerate(length_list)],
