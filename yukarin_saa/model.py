@@ -25,6 +25,15 @@ class Model(nn.Module):
             )
             self.predictor.set_output_correction(torch.from_numpy(output_correction))
 
+    @torch.jit.export
+    def f0_correction(
+        self, f0: List[Tensor], voiced: List[Tensor], speaker_id: List[Tensor]
+    ):
+        for f0_one, voiced_one, speaker_id_one in zip(f0, voiced, speaker_id):
+            corr_one = self.predictor.output_correction[speaker_id_one]
+            f0_one[voiced_one] -= corr_one
+        return f0
+
     def forward(
         self,
         vowel_phoneme: List[Tensor],
@@ -37,6 +46,8 @@ class Model(nn.Module):
         voiced: List[Tensor],
         speaker_id: Optional[List[Tensor]] = None,
     ):
+        f0 = self.f0_correction(f0=f0, voiced=voiced, speaker_id=speaker_id)
+
         output1, output2 = self.predictor(
             vowel_phoneme_list=vowel_phoneme,
             consonant_phoneme_list=consonant_phoneme,

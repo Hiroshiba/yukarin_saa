@@ -103,9 +103,7 @@ class Predictor(nn.Module):
     ):
         length_list = [t.shape[0] for t in vowel_phoneme_list]
 
-        length = torch.from_numpy(numpy.array(length_list)).to(
-            vowel_phoneme_list[0].device
-        )
+        length = torch.tensor(length_list, device=vowel_phoneme_list[0].device)
         vowel_phoneme = pad_sequence(vowel_phoneme_list, batch_first=True)
         consonant_phoneme = pad_sequence(consonant_phoneme_list, batch_first=True)
         start_accent = pad_sequence(start_accent_list, batch_first=True)
@@ -143,10 +141,6 @@ class Predictor(nn.Module):
         else:
             output2 = output1
 
-        if speaker_id is not None:
-            output1 = output1 + self.output_correction[speaker_id]
-            output2 = output2 + self.output_correction[speaker_id]
-
         return (
             [output1[i, :l, 0] for i, l in enumerate(length_list)],
             [output2[i, :l, 0] for i, l in enumerate(length_list)],
@@ -171,6 +165,9 @@ class Predictor(nn.Module):
             end_accent_phrase_list=end_accent_phrase_list,
             speaker_id=speaker_id,
         )
+        if speaker_id is not None:
+            for h_one, s_one in zip(h, speaker_id):
+                h_one += self.output_correction[s_one]
         return h
 
 
